@@ -1,7 +1,7 @@
 # Vendored crates
 
 Crates carried with a small patch so the renderer compiles for iOS. Each one is
-the unmodified crates.io release apart from lines marked `pbn-to-pdf-apple
+the unmodified crates.io release apart from lines marked `bridge-viewer
 patch`, wired in through `[patch.crates-io]` in `rust/Cargo.toml`. Remove a copy
 once upstream releases the fix.
 

@@ -1659,7 +1659,7 @@ pub struct FontInstancePlatformOptions {
     pub cleartype_level: u8,
 }
 
-// pbn-to-pdf-apple patch: iOS takes the macOS (Core Text) options.
+// bridge-viewer patch: iOS takes the macOS (Core Text) options.
 #[cfg(any(target_os = "macos", target_os = "ios"))]
 #[derive(Default, Debug, Copy, Clone, PartialEq, Eq, Ord, PartialOrd, Hash)]
 pub struct FontInstancePlatformOptions {
@@ -2256,7 +2256,7 @@ pub fn build_add_font_resource_updates(
                         hinting: FontHinting::Normal,
                     };
 
-                    #[cfg(any(target_os = "macos", target_os = "ios"))] // pbn-to-pdf-apple patch
+                    #[cfg(any(target_os = "macos", target_os = "ios"))] // bridge-viewer patch
                     let platform_options = FontInstancePlatformOptions::default();
 
                     #[cfg(target_arch = "wasm32")]

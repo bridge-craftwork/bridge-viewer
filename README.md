@@ -1,4 +1,6 @@
-# PBN to PDF for iPhone and iPad
+# Bridge Viewer
+
+An iPhone and iPad app for bridge teaching material.
 
 A native SwiftUI app over [pbn-to-pdf](https://github.com/bridge-craftwork/pbn-to-pdf):
 open a PBN file, pick a layout, and get a printable PDF — declarer's plans,
@@ -27,7 +29,7 @@ Needs Xcode and the two iOS Rust targets:
 ```bash
 rustup target add aarch64-apple-ios aarch64-apple-ios-sim
 scripts/build-xcframework.sh          # before the first Xcode build
-open app/PBNtoPDF.xcodeproj
+open app/BridgeViewer.xcodeproj
 ```
 
 The xcframework is generated and gitignored. Rebuild it whenever the renderer
@@ -52,4 +54,10 @@ from Files, and sent to the app from the share sheet.
 
 ## Licence
 
-[Unlicense](LICENSE). The vendored `azul-core` keeps its own MPL-2.0.
+Licensed under either of [Apache License, Version 2.0](LICENSE-APACHE) or
+[MIT license](LICENSE-MIT), at your option. The vendored `azul-core` keeps its
+own MPL-2.0.
+
+Unless you explicitly state otherwise, any contribution intentionally submitted
+for inclusion in this work, as defined in the Apache-2.0 license, shall be dual
+licensed as above, without any additional terms or conditions.

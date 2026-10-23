@@ -11,14 +11,14 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		2B0000000000000000000005 /* PBNtoPDF.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PBNtoPDF.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		2B0000000000000000000005 /* BridgeViewer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BridgeViewer.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		2B0000000000000000000020 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		2B0000000000000000000004 /* PBNtoPDF */ = {
+		2B0000000000000000000004 /* BridgeViewer */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = PBNtoPDF;
+			path = BridgeViewer;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -38,7 +38,7 @@
 		2B0000000000000000000002 = {
 			isa = PBXGroup;
 			children = (
-				2B0000000000000000000004 /* PBNtoPDF */,
+				2B0000000000000000000004 /* BridgeViewer */,
 				2B0000000000000000000020 /* Info.plist */,
 				2B0000000000000000000003 /* Products */,
 			);
@@ -47,7 +47,7 @@
 		2B0000000000000000000003 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				2B0000000000000000000005 /* PBNtoPDF.app */,
+				2B0000000000000000000005 /* BridgeViewer.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -55,9 +55,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		2B0000000000000000000006 /* PBNtoPDF */ = {
+		2B0000000000000000000006 /* BridgeViewer */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 2B000000000000000000000B /* Build configuration list for PBXNativeTarget "PBNtoPDF" */;
+			buildConfigurationList = 2B000000000000000000000B /* Build configuration list for PBXNativeTarget "BridgeViewer" */;
 			buildPhases = (
 				2B0000000000000000000007 /* Sources */,
 				2B0000000000000000000008 /* Frameworks */,
@@ -68,14 +68,14 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				2B0000000000000000000004 /* PBNtoPDF */,
+				2B0000000000000000000004 /* BridgeViewer */,
 			);
-			name = PBNtoPDF;
+			name = BridgeViewer;
 			packageProductDependencies = (
 				2B0000000000000000000031 /* PbnToPdfKit */,
 			);
-			productName = PBNtoPDF;
-			productReference = 2B0000000000000000000005 /* PBNtoPDF.app */;
+			productName = BridgeViewer;
+			productReference = 2B0000000000000000000005 /* BridgeViewer.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -93,7 +93,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 2B000000000000000000000A /* Build configuration list for PBXProject "PBNtoPDF" */;
+			buildConfigurationList = 2B000000000000000000000A /* Build configuration list for PBXProject "BridgeViewer" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -110,7 +110,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				2B0000000000000000000006 /* PBNtoPDF */,
+				2B0000000000000000000006 /* BridgeViewer */,
 			);
 		};
 /* End PBXProject section */
@@ -188,7 +188,7 @@
 				DEVELOPMENT_TEAM = 8H3FX5B8KD;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "PBN to PDF";
+				INFOPLIST_KEY_CFBundleDisplayName = "Bridge Viewer";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";
 				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -196,7 +196,7 @@
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				MARKETING_VERSION = 0.1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.popperbiz.PBNtoPDF;
+				PRODUCT_BUNDLE_IDENTIFIER = com.popperbiz.BridgeViewer;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 			};
@@ -212,7 +212,7 @@
 				DEVELOPMENT_TEAM = 8H3FX5B8KD;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "PBN to PDF";
+				INFOPLIST_KEY_CFBundleDisplayName = "Bridge Viewer";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";
 				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -220,7 +220,7 @@
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				MARKETING_VERSION = 0.1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.popperbiz.PBNtoPDF;
+				PRODUCT_BUNDLE_IDENTIFIER = com.popperbiz.BridgeViewer;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 			};
@@ -229,7 +229,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		2B000000000000000000000A /* Build configuration list for PBXProject "PBNtoPDF" */ = {
+		2B000000000000000000000A /* Build configuration list for PBXProject "BridgeViewer" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				2B000000000000000000000C /* Debug */,
@@ -238,7 +238,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		2B000000000000000000000B /* Build configuration list for PBXNativeTarget "PBNtoPDF" */ = {
+		2B000000000000000000000B /* Build configuration list for PBXNativeTarget "BridgeViewer" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				2B000000000000000000000E /* Debug */,

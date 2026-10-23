@@ -14,7 +14,7 @@ struct ContentView: View {
                     EmptyState(importing: $importing)
                 }
             }
-            .navigationTitle(model.file?.name ?? "PBN to PDF")
+            .navigationTitle(model.file?.name ?? "Bridge Viewer")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {

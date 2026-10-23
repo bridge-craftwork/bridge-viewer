@@ -1,7 +1,7 @@
 import SwiftUI
 
 @main
-struct PBNtoPDFApp: App {
+struct BridgeViewerApp: App {
     @State private var model = DocumentModel()
 
     var body: some Scene {
