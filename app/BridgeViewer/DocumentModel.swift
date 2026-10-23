@@ -1,7 +1,6 @@
 import Observation
 import PDFKit
 import PbnToPdfKit
-import UIKit
 
 /// The open file, the chosen layout, and what they render to.
 ///
@@ -12,10 +11,14 @@ import UIKit
 @MainActor @Observable
 final class DocumentModel {
     private(set) var file: PBNFile?
-    var layout: PageLayout = PageLayout.all[0] { didSet { if layout != oldValue { render() } } }
-    var options = RenderOptions() { didSet { if options != oldValue { render(); renderPreviews() } } }
+    var layout: PageLayout = PageLayout.all[0] { didSet { if layout != oldValue { render(keepPage: false) } } }
+    var options = RenderOptions() {
+        didSet { if options != oldValue { render(keepPage: true); renderPreviews() } }
+    }
 
     private(set) var pdf: PDFDocument?
+    /// The bytes behind `pdf`, for saving.
+    private(set) var pdfData: Data?
     /// The rendered PDF written to a temporary file under a readable name,
     /// for the share sheet.
     private(set) var shareURL: URL?
@@ -27,7 +30,31 @@ final class DocumentModel {
 
     /// First-page thumbnails, one per layout, so a layout can be recognised
     /// before it is chosen -- the same idea as the web app's gallery.
-    private(set) var previews: [PageLayout: UIImage] = [:]
+    private(set) var previews: [PageLayout: CGImage] = [:]
+
+    // MARK: Navigation
+
+    enum ViewMode { case pages, grid }
+    var viewMode = ViewMode.pages
+    /// The page PDFView is showing (0-based), as it reports it.
+    var currentPage = 0
+    var pageCount: Int { pdf?.pageCount ?? 0 }
+    /// A jump for PDFView to make. A fresh id per request, so asking for the
+    /// page it is already on still moves it there.
+    struct PageRequest: Equatable { let index: Int; let id = UUID() }
+    private(set) var pageRequest: PageRequest?
+    private(set) var thumbnails: ThumbnailLoader?
+
+    /// Leave the grid for `index`.
+    func show(page index: Int) {
+        pageRequest = PageRequest(index: index)
+        viewMode = .pages
+    }
+
+    // MARK: Menu and toolbar requests (the Mac menu bar reaches them here)
+
+    var isImporting = false
+    var isExporting = false
 
     private var generation = 0
     private var previewGeneration = 0
@@ -44,11 +71,14 @@ final class DocumentModel {
         error = nil
         self.file = file
         previews = [:]
-        render()
+        viewMode = .pages
+        render(keepPage: false)
         renderPreviews()
     }
 
-    private func render() {
+    /// `keepPage`: the change doesn't move content between pages (circling
+    /// options), so stay where the reader is rather than going back to page 1.
+    private func render(keepPage: Bool) {
         guard let file else { return }
         generation += 1
         let mine = generation
@@ -67,13 +97,21 @@ final class DocumentModel {
                 self.shareURL.map(Self.discard)
                 switch result {
                 case .success(let data):
+                    let page = keepPage ? self.currentPage : 0
                     self.pdf = PDFDocument(data: data)
+                    self.pdfData = data
+                    self.thumbnails = ThumbnailLoader(data: data)
                     self.shareURL = url
                     self.error = nil
+                    self.currentPage = min(page, max(self.pageCount - 1, 0))
+                    self.pageRequest = PageRequest(index: self.currentPage)
                 case .failure(let error):
                     self.pdf = nil
+                    self.pdfData = nil
+                    self.thumbnails = nil
                     self.shareURL = nil
                     self.error = error.localizedDescription
+                    self.viewMode = .pages
                 }
             }
         }
@@ -87,9 +125,9 @@ final class DocumentModel {
         Task.detached(priority: .utility) {
             for layout in PageLayout.all {
                 guard let data = try? Renderer.preview(text, layout: layout, options: options),
-                      let page = PDFDocument(data: data)?.page(at: 0)
+                      let page = PDFDocument(data: data)?.page(at: 0),
+                      let image = page.cgThumbnail(fitting: CGSize(width: 120, height: 120), scale: 2)
                 else { continue }
-                let image = page.thumbnail(of: CGSize(width: 240, height: 240), for: .mediaBox)
                 await MainActor.run {
                     if mine == self.previewGeneration { self.previews[layout] = image }
                 }
@@ -105,6 +143,30 @@ final class DocumentModel {
     static func fileName(stem: String, layout: PageLayout) -> String {
         let raw = "\(stem) - \(layout.label).pdf"
         return raw.replacingOccurrences(of: "/", with: "-").replacingOccurrences(of: ":", with: "-")
+    }
+
+    #if DEBUG
+    func applyDebugArguments(_ args: [String]) async {
+        func value(after flag: String) -> String? {
+            args.firstIndex(of: flag).flatMap { args.indices.contains($0 + 1) ? args[$0 + 1] : nil }
+        }
+        if let name = value(after: "-Layout"), let match = PageLayout.all.first(where: { $0.rawValue == name }) {
+            layout = match
+        }
+        if let path = value(after: "-LoadFile") {
+            open(url: URL(fileURLWithPath: path))
+        } else if args.contains("-LoadSample"), let sample = PBNFile.sample() {
+            load(sample)
+        }
+        if args.contains("-ShowGrid") {
+            while pdf == nil && file != nil { try? await Task.sleep(for: .milliseconds(100)) }
+            viewMode = .grid
+        }
+    }
+    #endif
+
+    var suggestedFileName: String {
+        file.map { Self.fileName(stem: $0.stem, layout: layout) } ?? "Bridge Viewer.pdf"
     }
 }
 

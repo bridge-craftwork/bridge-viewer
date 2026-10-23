@@ -22,6 +22,11 @@ layout and build steps.
   update moves printpdf onto a newer azul-core, the `[patch.crates-io]` entry
   stops applying and the iOS build fails with E0425 in `resources.rs` — re-vendor
   that version with the same change, or drop it if upstream has fixed it.
+- **The Mac slice is one universal library.** An xcframework takes one library
+  per platform, so the script `lipo`s the arm64 and x86_64 Mac builds together.
+- **Pinch-to-grid watches, never captures.** On iPad a second pinch recognizer
+  runs alongside PDFView's; on the Mac `PinchablePDFView` observes magnify
+  events after `super`. Taking the gesture instead breaks PDFView's own zoom.
 - **`SwiftUI.Layout` exists.** The renderer's layout type is `PageLayout` for
   that reason.
 

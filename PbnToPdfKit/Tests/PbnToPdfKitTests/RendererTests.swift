@@ -3,7 +3,7 @@ import PDFKit
 import Testing
 @testable import PbnToPdfKit
 
-// The xcframework carries iOS slices only, so run these on a simulator:
+// Run on the Mac with `swift test`, or on a simulator:
 //   xcodebuild test -scheme PbnToPdfKit -destination 'platform=iOS Simulator,name=iPad Pro 11-inch (M5)'
 
 private func fixture() throws -> String {

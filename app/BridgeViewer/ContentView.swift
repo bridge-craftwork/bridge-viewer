@@ -1,37 +1,37 @@
 import PbnToPdfKit
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct ContentView: View {
     @Environment(DocumentModel.self) private var model
-    @State private var importing = false
 
     var body: some View {
+        @Bindable var model = model
         NavigationStack {
             Group {
-                if let file = model.file {
-                    DocumentView(file: file)
+                if model.file != nil {
+                    DocumentView()
                 } else {
-                    EmptyState(importing: $importing)
+                    EmptyState()
                 }
             }
             .navigationTitle(model.file?.name ?? "Bridge Viewer")
+            #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button("Open", systemImage: "folder") { importing = true }
-                }
-                ToolbarItem(placement: .topBarTrailing) {
-                    if let url = model.shareURL {
-                        ShareLink(item: url)
-                    }
-                }
-            }
-            .fileImporter(isPresented: $importing, allowedContentTypes: [.pbn, .plainText]) { result in
+            #endif
+            .toolbar { Toolbar() }
+            .fileImporter(isPresented: $model.isImporting, allowedContentTypes: [.pbn, .plainText]) { result in
                 switch result {
                 case .success(let url): model.open(url: url)
                 case .failure(let error): model.openError = error.localizedDescription
                 }
             }
+            .fileExporter(
+                isPresented: $model.isExporting,
+                document: model.pdfData.map(PDFFile.init),
+                contentType: .pdf,
+                defaultFilename: model.suggestedFileName
+            ) { _ in }
             .alert(
                 "Couldn't open that file",
                 isPresented: Binding(
@@ -42,12 +42,52 @@ struct ContentView: View {
                 message: { Text(model.openError ?? "") }
             )
         }
+        // A .pbn dragged onto the window: from Finder, or from Files in
+        // iPad split view.
+        .dropDestination(for: URL.self) { urls, _ in
+            guard let url = urls.first else { return false }
+            model.open(url: url)
+            return true
+        }
+    }
+}
+
+private struct Toolbar: ToolbarContent {
+    @Environment(DocumentModel.self) private var model
+
+    var body: some ToolbarContent {
+        @Bindable var model = model
+        ToolbarItem(placement: .navigation) {
+            Button("Open", systemImage: "folder") { model.isImporting = true }
+        }
+        if model.pdf != nil {
+            ToolbarItem(placement: .primaryAction) {
+                Picker("View", selection: $model.viewMode) {
+                    Label("Pages", systemImage: "doc.text").tag(DocumentModel.ViewMode.pages)
+                    Label("Grid", systemImage: "square.grid.3x3").tag(DocumentModel.ViewMode.grid)
+                }
+                .pickerStyle(.segmented)
+                .fixedSize()
+                .help("Show one page at a time, or every page as a grid")
+            }
+        }
+        #if os(macOS)
+        if model.pdfData != nil {
+            ToolbarItem(placement: .primaryAction) {
+                Button("Save PDF…", systemImage: "square.and.arrow.down") { model.isExporting = true }
+            }
+        }
+        #endif
+        if let url = model.shareURL {
+            ToolbarItem(placement: .primaryAction) {
+                ShareLink(item: url)
+            }
+        }
     }
 }
 
 private struct EmptyState: View {
     @Environment(DocumentModel.self) private var model
-    @Binding var importing: Bool
 
     var body: some View {
         ContentUnavailableView {
@@ -55,7 +95,7 @@ private struct EmptyState: View {
         } description: {
             Text("Choose a layout and get a printable PDF: declarer's plans, bidding sheets, hand records and more.")
         } actions: {
-            Button("Open a File…") { importing = true }
+            Button("Open a File…") { model.isImporting = true }
                 .buttonStyle(.borderedProminent)
             if let sample = PBNFile.sample() {
                 Button("Try a Sample") { model.load(sample) }
@@ -66,7 +106,6 @@ private struct EmptyState: View {
 
 private struct DocumentView: View {
     @Environment(DocumentModel.self) private var model
-    let file: PBNFile
 
     var body: some View {
         @Bindable var model = model
@@ -76,8 +115,19 @@ private struct DocumentView: View {
                 CirclingOptions(options: $model.options)
             }
             Divider()
-            ZStack {
-                PDFKitView(document: model.pdf)
+            ZStack(alignment: .bottom) {
+                // Stays alive under the grid, so leaving the grid without
+                // choosing a page returns to the same place.
+                PDFKitView(
+                    document: model.pdf,
+                    request: model.pageRequest,
+                    onPageChange: { model.currentPage = $0 },
+                    onPinchOut: { withAnimation(.easeInOut(duration: 0.2)) { model.viewMode = .grid } }
+                )
+                if model.viewMode == .grid, let loader = model.thumbnails {
+                    PageGrid(loader: loader)
+                        .transition(.opacity.combined(with: .scale(scale: 1.04)))
+                }
                 if let error = model.error {
                     ContentUnavailableView(
                         "Couldn't render this layout",
@@ -86,10 +136,40 @@ private struct DocumentView: View {
                     )
                     .background(.background)
                 } else if model.isRendering && model.pdf == nil {
-                    ProgressView()
+                    ProgressView().frame(maxHeight: .infinity)
+                } else if model.pageCount > 0 {
+                    PageIndicator()
                 }
             }
+            .animation(.easeInOut(duration: 0.2), value: model.viewMode)
         }
+    }
+}
+
+/// "Page 12 of 120". Tapping it opens the grid, which is the fast way to go
+/// somewhere else.
+private struct PageIndicator: View {
+    @Environment(DocumentModel.self) private var model
+
+    var body: some View {
+        Button {
+            model.viewMode = model.viewMode == .grid ? .pages : .grid
+        } label: {
+            Group {
+                if model.viewMode == .grid {
+                    Text("\(model.pageCount) pages")
+                } else {
+                    Text("Page \(model.currentPage + 1) of \(model.pageCount)")
+                }
+            }
+            .font(.callout.monospacedDigit())
+            .padding(.horizontal, 14)
+            .padding(.vertical, 7)
+            .background(.regularMaterial, in: .capsule)
+        }
+        .buttonStyle(.plain)
+        .padding(.bottom, 16)
+        .help("Show every page")
     }
 }
 
@@ -121,14 +201,14 @@ private struct LayoutStrip: View {
 
 private struct LayoutCard: View {
     let layout: PageLayout
-    let image: UIImage?
+    let image: CGImage?
     let selected: Bool
 
     var body: some View {
         VStack(spacing: 6) {
             Group {
                 if let image {
-                    Image(uiImage: image).resizable().scaledToFit()
+                    Image(page: image, scale: 2).resizable().scaledToFit()
                 } else {
                     Color.white.overlay(ProgressView())
                 }
@@ -167,5 +247,19 @@ private struct CirclingOptions: View {
         .padding(.bottom, 8)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(.bar)
+    }
+}
+
+/// The rendered bytes, for `fileExporter`.
+struct PDFFile: FileDocument {
+    static let readableContentTypes: [UTType] = [.pdf]
+    let data: Data
+
+    init(data: Data) { self.data = data }
+    init(configuration: ReadConfiguration) throws {
+        data = configuration.file.regularFileContents ?? Data()
+    }
+    func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
+        FileWrapper(regularFileWithContents: data)
     }
 }
