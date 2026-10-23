@@ -10,12 +10,16 @@ import SwiftUI
 struct PDFKitView {
     let document: PDFDocument?
     let request: DocumentModel.PageRequest?
+    /// Matches to highlight, the one to show, and a generation that changes
+    /// with either.
+    let search: (results: [PDFSelection], index: Int, generation: Int)
     let onPageChange: (Int) -> Void
     let onPinchOut: () -> Void
 
     final class Coordinator: NSObject {
         var parent: PDFKitView
         var lastRequest: DocumentModel.PageRequest?
+        var lastSearch = 0
         /// One pinch opens the grid once, however long it goes on.
         var pinchFired = false
 
@@ -65,6 +69,18 @@ struct PDFKitView {
            let page = document?.page(at: request.index) {
             coordinator.lastRequest = request
             view.go(to: page)
+        }
+        if search.generation != coordinator.lastSearch {
+            coordinator.lastSearch = search.generation
+            for match in search.results { match.color = .systemYellow.withAlphaComponent(0.5) }
+            view.highlightedSelections = search.results.isEmpty ? nil : search.results
+            if search.results.indices.contains(search.index) {
+                let match = search.results[search.index]
+                view.setCurrentSelection(match, animate: true)
+                view.go(to: match)
+            } else {
+                view.clearSelection()
+            }
         }
     }
 }

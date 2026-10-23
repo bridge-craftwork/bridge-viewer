@@ -27,6 +27,12 @@ layout and build steps.
 - **Pinch-to-grid watches, never captures.** On iPad a second pinch recognizer
   runs alongside PDFView's; on the Mac `PinchablePDFView` observes magnify
   events after `super`. Taking the gesture instead breaks PDFView's own zoom.
+- **No `ViewThatFits` around controls next to the PDF.** It keeps hidden
+  copies of its children; with buttons among them, PDFView's next document
+  swap sent UIKit's first-responder promotion into an endless loop and the
+  app hung on every re-render. `LayoutBar` measures its width instead. Repro:
+  launch with `-LoadSample -ToggleCircling` and sample the process for
+  `_setFirstResponder`.
 - **`SwiftUI.Layout` exists.** The renderer's layout type is `PageLayout` for
   that reason.
 

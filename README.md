@@ -11,6 +11,12 @@ static library for iOS and macOS rather than to WebAssembly. PDFKit shows the
 result, so scrolling and zoom are native; the share sheet (and on the Mac, Save
 and Print) send it on.
 
+The layout bar stays collapsed to one row showing the current layout --
+most people use one nearly always, and it (and the circling choices) is
+remembered between launches. Tap it for the strip of every layout. Search
+sits beside it: matches are highlighted, with a count and previous/next (⌘F,
+⌘G and ⇧⌘G on the Mac).
+
 For long documents there is a page counter, and a page grid: pinch out past
 fit-to-width (or use the Pages/Grid toggle, or View ▸ Show Page Grid on the
 Mac), pinch within the grid to change its size, tap a page to read it.
@@ -45,7 +51,8 @@ first.
 
 Debug builds take launch arguments for screenshots: `-LoadSample` or
 `-LoadFile <path>` (the latter not on the sandboxed Mac), then `-Layout
-<name>` and `-ShowGrid`.
+<name>`, `-ShowGrid`, `-Search <text>` and `-ToggleCircling` (a re-render
+two seconds in, with search open).
 
 ```bash
 cd PbnToPdfKit && swift test                    # the Swift API, on the Mac

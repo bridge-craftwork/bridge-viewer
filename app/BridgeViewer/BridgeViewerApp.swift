@@ -24,8 +24,8 @@ struct BridgeViewerApp: App {
             .onOpenURL { model.open(url: $0) }
             #if DEBUG
             // Launch arguments for screenshotting without tapping through:
-            // `-LoadSample`, or `-LoadFile <path>`; then `-Layout <name>` and
-            // `-ShowGrid`.
+            // `-LoadSample`, or `-LoadFile <path>`; then `-Layout <name>`,
+            // `-ShowGrid` and `-Search <text>`.
             .task { await model.applyDebugArguments(CommandLine.arguments) }
             #endif
     }
@@ -49,6 +49,11 @@ private struct MenuCommands: Commands {
         CommandGroup(replacing: .printItem) {
             Button("Print…") { model.pdf?.printWithPanel() }
                 .keyboardShortcut("p")
+                .disabled(model.pdf == nil)
+        }
+        CommandGroup(after: .textEditing) {
+            Button("Find…") { model.isSearching = true }
+                .keyboardShortcut("f")
                 .disabled(model.pdf == nil)
         }
         CommandGroup(before: .toolbar) {
