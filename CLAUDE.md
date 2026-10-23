@@ -46,5 +46,8 @@ committed — breakage should surface the same day.
 
 Unlicense, like pbn-to-pdf and the sister repos.
 
-Layout display names and order in `PbnToPdfKit/Sources/PbnToPdfKit/Renderer.swift`
-mirror `layoutLabel` and `LAYOUT_ORDER` in pbn-to-pdf's `web/src/lib/render.js`.
+Layout display names in `PbnToPdfKit/Sources/PbnToPdfKit/Renderer.swift` mirror
+`layoutLabel` in pbn-to-pdf's `web/src/lib/render.js`. The order deliberately
+does not follow its `LAYOUT_ORDER`: analysis, hand record, dealer summary,
+bidding sheets, then the declarer's plans 1-, 2- and 4-up. The last layout
+chosen is saved and every file opens in it.

@@ -21,6 +21,13 @@ private func fixture() throws -> String {
     }
 }
 
+@Test func layoutsAreInDisplayOrder() {
+    #expect(PageLayout.all.map(\.rawValue) == [
+        "analysis", "hand-record", "dealer-summary", "bidding-sheets",
+        "declarers-plan-1up", "declarers-plan-2up", "declarers-plan",
+    ])
+}
+
 @Test func previewIsAFirstPageNotALesson() throws {
     let pbn = try fixture()
     let layout = try #require(PageLayout.all.first { $0.rawValue == "declarers-plan-1up" })
