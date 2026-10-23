@@ -1,0 +1,31 @@
+[package]
+name = "pbn-to-pdf-ffi"
+version = "0.1.0"
+edition = "2021"
+license = "Unlicense"
+description = "C ABI over pbn-to-pdf, for the iOS and iPadOS app"
+publish = false
+
+[lib]
+# A static library, wrapped into PbnToPdfFFI.xcframework by
+# scripts/build-xcframework.sh and linked into the app through PbnToPdfKit.
+crate-type = ["staticlib", "rlib"]
+
+[dependencies]
+# The renderer, unpinned on purpose: breakage should surface the same day, as
+# it does for the other internal crates. `cli` is off -- clap and env_logger
+# are dead weight in an app.
+pbn-to-pdf = { git = "https://github.com/bridge-craftwork/pbn-to-pdf", default-features = false }
+
+[profile.release]
+lto = true
+codegen-units = 1
+panic = "unwind"   # catch_unwind at the boundary relies on it
+strip = "debuginfo"
+
+# azul-core 0.0.6 (pulled in by printpdf's svg feature) declares its font
+# platform options for windows, macos, linux and wasm only, so iOS fails to
+# compile. vendor/azul-core is the crates.io release with iOS added to the macOS
+# cfgs; see vendor/README.md. Drop it once upstream covers iOS.
+[patch.crates-io]
+azul-core = { path = "../vendor/azul-core" }

@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Merged with the generated Info.plist (GENERATE_INFOPLIST_FILE). Only what the
+  INFOPLIST_KEY_ build settings can't express lives here: the .pbn type.
+
+  iOS has no system type for .pbn, which is why Safari greys PBN files out of a
+  file picker. Importing one -- conforming to plain text, matched on the
+  extension -- makes them pickable here and puts this app in the share sheet
+  and under "Open in" for them. Imported, not exported: we don't own the format.
+  Keep the identifier in step with UTType.pbn in PBNFile.swift.
+-->
+<plist version="1.0">
+<dict>
+	<key>UTImportedTypeDeclarations</key>
+	<array>
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>com.popperbiz.pbn</string>
+			<key>UTTypeDescription</key>
+			<string>Portable Bridge Notation</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.plain-text</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>pbn</string>
+				</array>
+			</dict>
+		</dict>
+	</array>
+	<key>CFBundleDocumentTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Portable Bridge Notation</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>LSHandlerRank</key>
+			<string>Default</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>com.popperbiz.pbn</string>
+			</array>
+		</dict>
+	</array>
+</dict>
+</plist>

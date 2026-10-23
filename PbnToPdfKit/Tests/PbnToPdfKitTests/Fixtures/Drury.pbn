@@ -1,0 +1,234 @@
+%Creator: CSVtoPBN Version 1.04
+%Created: 2026-02-10 12:01:05
+%sourcefilename BakerBridge.csv
+%HRTitleEvent Drury
+[Event "Baker Bridge - Reverse Drury"]
+[Board "1"]
+[Dealer "S"]
+[Vulnerable "None"]
+[Deal "W:- K43.AQJ54.63.T95 - A5.KT83.K752.843"]
+[Declarer "N"]
+[Contract "2H"]
+[Result ""]
+[Auction "S"]
+pass pass 1H pass 2C pass 2H pass pass pass pass pass
+[BCFlags "1f"]
+[Category "Bidding Conventions"]
+[Difficulty "intermediate"]
+[SkillPath "bidding_conventions/reverse_drury"]
+[Student "S"]
+{Baker Drury 1}
+{[show S]
+
+The bidding has gone as shown. Decide what you would say, then click on BID above. [BID 2\C]
+
+With 11 points in support of \Hs you would generally make a limit raise with this hand. But since partner is in third seat you need to go carefully in case he has opened light. So you bid a Reverse Drury 2\C.
+
+Partner rebids 2\H. What do you say next? [BID pass]
+
+[show NS]
+
+
+
+Partner's 2\H rebid tells you that he opened light. So you pass.}
+
+
+[Event "Baker Bridge - Reverse Drury"]
+[Board "2"]
+[Dealer "N"]
+[Vulnerable "None"]
+[Deal "W:- Q874.A53.KQ3.T82 - AKJ95.Q94.76.965"]
+[Declarer "S"]
+[Contract "2S"]
+[Result ""]
+[Auction "N"]
+pass pass 1S pass 2C pass 2S pass pass pass
+[BCFlags "1f"]
+[Category "Bidding Conventions"]
+[Difficulty "intermediate"]
+[SkillPath "bidding_conventions/reverse_drury"]
+[Student "S"]
+{Baker Drury 2}
+{[show S]
+
+You open in third seat and the bidding continues as shown. Decide what you would say, then click on BID above. [BID 2\S]
+
+[show NS]
+
+Partner has a limit raise in \Ss and wonders if you have a full strength opening bid. Since you opened light you just return to \Ss at the minimum level.
+
+Partner passes.}
+
+
+[Event "Baker Bridge - Reverse Drury"]
+[Board "3"]
+[Dealer "S"]
+[Vulnerable "None"]
+[Deal "W:- AK952.K83.QJ.752 - QJT7.A4.KT953.94"]
+[Declarer "N"]
+[Contract "4S"]
+[Result ""]
+[Auction "S"]
+pass pass 1S pass 2C pass 2D pass 4S pass pass pass
+[BCFlags "1f"]
+[Category "Bidding Conventions"]
+[Difficulty "intermediate"]
+[SkillPath "bidding_conventions/reverse_drury"]
+[Student "S"]
+{Baker Drury 3}
+{[show S]
+
+The bidding has gone as shown. Decide what you would say, then click on BID above. [BID 2\C]
+
+Bold bidders might have opened with this hand, so when partner opens in third seat you naturally want to show your strength. If you play Reverse Drury there is only one way to do that, so you bid 2\C.
+
+Partner rebids 2\D. What do you say next? [BID 4\S]
+
+[show NS]
+
+
+
+The 2\D rebid shows a hand that partner would have opened in any position. So here it gets a little ambiguous. Surely a jump to 3\S would be forcing, but to keep the possibility of misunderstandings low a jump to 4\S is no doubt safer. After all, you can revalue your hand up to 13 points in support of \Ss.}
+
+
+[Event "Baker Bridge - Reverse Drury"]
+[Board "4"]
+[Dealer "N"]
+[Vulnerable "None"]
+[Deal "W:- A94.AJ7.KT83.T82 - 752.KQT63.QJ9.A7"]
+[Declarer "S"]
+[Contract "4H"]
+[Result ""]
+[Auction "N"]
+pass pass 1H pass 2C pass 2D pass 3H pass 4H pass pass pass
+[BCFlags "1f"]
+[Category "Bidding Conventions"]
+[Difficulty "intermediate"]
+[SkillPath "bidding_conventions/reverse_drury"]
+[Student "S"]
+{Baker Drury 4}
+{[show S]
+
+You open in third seat and the bidding continues as shown. Decide what you would say, then click on BID above. [BID 2\D]
+
+Partner has a limit raise in \Hs and wonders if you have a full strength opening bid. Your 13 point hand qualifies as a decent opening bid, but certainly not enough extra to just jump to game. You bid 2\D, confirming the legitimate opener. Partner jumps to 3\H. What do you bid? [BID 4\H]
+
+[show NS]
+
+
+
+Partner shows a maximum limit-raise with his jump, so you bid the game.}
+
+
+[Event "Baker Bridge - Reverse Drury"]
+[Board "5"]
+[Dealer "S"]
+[Vulnerable "None"]
+[Deal "W:- Q84.AKJ53.82.A74 - 7.Q9864.T743.K83"]
+[Declarer "N"]
+[Contract "3H"]
+[Result ""]
+[Auction "S"]
+pass pass 1H pass 3H pass pass pass
+[BCFlags "1f"]
+[Category "Bidding Conventions"]
+[Difficulty "intermediate"]
+[SkillPath "bidding_conventions/reverse_drury"]
+[Student "S"]
+{Baker Drury 5}
+{[show S]
+
+The bidding has gone as shown. Decide what you would say, then click on BID above. [BID 3\H]
+
+[show NS]
+
+You like partner's \H suit but you have very little defensive strength. This is a good hand to preempt the bidding, trying to keep them from finding a \S fit.
+
+So you jump to 3\H. Partner realizes you don't have any strength since you did not invoke Reverse Drury. He passes and you have bought the contract. It appears that their side might be able to make 4\S.}
+
+
+[Event "Baker Bridge - Reverse Drury"]
+[Board "6"]
+[Dealer "N"]
+[Vulnerable "None"]
+[Deal "W:- T642.KQ5.86.AQ93 - QJ9875.A4.KQJ.87"]
+[Declarer "S"]
+[Contract "4S"]
+[Result ""]
+[Auction "N"]
+pass pass 1S pass 2C pass 4S pass pass pass
+[BCFlags "1f"]
+[Category "Bidding Conventions"]
+[Difficulty "intermediate"]
+[SkillPath "bidding_conventions/reverse_drury"]
+[Student "S"]
+{Baker Drury 6}
+{[show S]
+
+You open in third seat and the bidding continues as shown. Decide what you would say, then click on BID above. [BID 4\S]
+
+[show NS]
+
+Partner has a limit raise in \Ss and wonders if you have a full strength opening bid. Your 15 point hand is enough to insist on game, but opposite a passed hand you have no interest in a slam.
+
+So you sign-off at 4\S.}
+
+
+[Event "Baker Bridge - Reverse Drury"]
+[Board "7"]
+[Dealer "S"]
+[Vulnerable "None"]
+[Deal "W:- KT843.J53.J76.AK - QJ96.AK.852.9765"]
+[Declarer "N"]
+[Contract "2S"]
+[Result ""]
+[Auction "S"]
+pass pass 1S pass 2C pass 2D pass 2S pass pass pass
+[BCFlags "1f"]
+[Category "Bidding Conventions"]
+[Difficulty "intermediate"]
+[SkillPath "bidding_conventions/reverse_drury"]
+[Student "S"]
+{Baker Drury 7}
+{[show S]
+
+The bidding has gone as shown. Decide what you would say, then click on BID above. [BID 2\C]
+
+With 11 points in support of \Ss you need to let partner know. The way to do it is to bid 2\C.
+
+Partner rebids 2\D, confirming a full-strength opening bid. What do you bid next? [BID 2\S]
+
+[show NS]
+
+
+
+You've told partner you had at least a limit raise, now you need to tell him that it is pretty minimal. You bid 2\S and everybody passes.}
+
+
+[Event "Baker Bridge - Reverse Drury"]
+[Board "8"]
+[Dealer "N"]
+[Vulnerable "None"]
+[Deal "W:- JT96.Q8.86.K8653 - KQ875.K74.KQ7.T2"]
+[Declarer "S"]
+[Contract "3S"]
+[Result ""]
+[Auction "N"]
+pass pass 1S pass 3S pass pass pass pass pass
+[BCFlags "1f"]
+[Category "Bidding Conventions"]
+[Difficulty "intermediate"]
+[SkillPath "bidding_conventions/reverse_drury"]
+[Student "S"]
+{Baker Drury 8}
+{[show S]
+
+You open in third seat and the bidding continues as shown. Decide what you would say, then click on BID above. [BID pass]
+
+[show NS]
+
+If you thought North had 11 points you'd bid 4\S. But you know he has a weak hand - with 10+ points and support he would have said 2\C.
+
+His 3\S bid is just preemptive, so you pass.}
+
+
