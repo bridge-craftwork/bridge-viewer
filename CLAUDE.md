@@ -33,8 +33,7 @@ bundle ID `com.popperbiz.BridgeViewer`, local Swift package for the library. The
 pbn-to-pdf dependency is an unpinned git dependency and `rust/Cargo.lock` is not
 committed — breakage should surface the same day.
 
-Licensed MIT OR Apache-2.0 (unlike the Unlicense sister repos); pbn-to-pdf
-itself is Unlicense, which is compatible.
+Unlicense, like pbn-to-pdf and the sister repos.
 
 Layout display names and order in `PbnToPdfKit/Sources/PbnToPdfKit/Renderer.swift`
 mirror `layoutLabel` and `LAYOUT_ORDER` in pbn-to-pdf's `web/src/lib/render.js`.

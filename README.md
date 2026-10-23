@@ -54,10 +54,5 @@ from Files, and sent to the app from the share sheet.
 
 ## Licence
 
-Licensed under either of [Apache License, Version 2.0](LICENSE-APACHE) or
-[MIT license](LICENSE-MIT), at your option. The vendored `azul-core` keeps its
+[Unlicense](LICENSE), matching pbn-to-pdf. The vendored `azul-core` keeps its
 own MPL-2.0.
-
-Unless you explicitly state otherwise, any contribution intentionally submitted
-for inclusion in this work, as defined in the Apache-2.0 license, shall be dual
-licensed as above, without any additional terms or conditions.

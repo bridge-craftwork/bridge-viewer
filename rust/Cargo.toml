@@ -2,7 +2,7 @@
 name = "pbn-to-pdf-ffi"
 version = "0.1.0"
 edition = "2021"
-license = "MIT OR Apache-2.0"
+license = "Unlicense"
 description = "C ABI over pbn-to-pdf, for the iOS and iPadOS app"
 publish = false
 
