@@ -62,8 +62,22 @@ struct PDFKitView {
         coordinator.parent = self
         if view.document !== document {
             view.document = document
-            // Fit the new document's width; autoScales alone keeps the old scale.
-            view.scaleFactor = view.scaleFactorForSizeToFit
+            // Refit the new document's width. Not by setting scaleFactor:
+            // that switches autoScales off, and the view then stops refitting
+            // when it is resized (the layout strip folding away).
+            view.autoScales = false
+            view.autoScales = true
+            // A swapped-in document can sit undrawn until something forces a
+            // layout -- on the iPad a layout change showed nothing until the
+            // next zoom. Lay it out now, and again once SwiftUI has settled
+            // the view's size for this update.
+            view.layoutDocumentView()
+            let page = request.flatMap { document?.page(at: $0.index) }
+            DispatchQueue.main.async { [weak view] in
+                guard let view, view.document === document else { return }
+                view.layoutDocumentView()
+                if let page { view.go(to: page) }
+            }
         }
         if let request, request != coordinator.lastRequest,
            let page = document?.page(at: request.index) {

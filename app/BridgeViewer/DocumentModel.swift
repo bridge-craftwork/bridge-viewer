@@ -227,6 +227,12 @@ final class DocumentModel {
         }
         // Re-render with the search field focused: the case that once hung
         // UIKit in a first-responder loop.
+        if let name = value(after: "-SwitchLayout"), let match = PageLayout.all.first(where: { $0.rawValue == name }) {
+            try? await Task.sleep(for: .seconds(2))
+            layout = match
+            // As a tap in the strip does: the strip folds away too.
+            NotificationCenter.default.post(name: .debugCollapseStrip, object: nil)
+        }
         if args.contains("-ToggleCircling") {
             try? await Task.sleep(for: .seconds(2))
             options.circleSureWinners.toggle()
@@ -241,6 +247,12 @@ final class DocumentModel {
 
 /// UserDefaults for the choices above. Board selection is per file, so it
 /// isn't kept.
+#if DEBUG
+extension Notification.Name {
+    static let debugCollapseStrip = Notification.Name("debugCollapseStrip")
+}
+#endif
+
 private enum Saved {
     private static let defaults = UserDefaults.standard
 

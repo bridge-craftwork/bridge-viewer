@@ -150,6 +150,11 @@ private struct DocumentView: View {
             }
             .animation(.easeInOut(duration: 0.2), value: model.viewMode)
         }
+        #if DEBUG
+        .onReceive(NotificationCenter.default.publisher(for: .debugCollapseStrip)) { _ in
+            withAnimation(.easeInOut(duration: 0.2)) { expanded = false }
+        }
+        #endif
     }
 }
 

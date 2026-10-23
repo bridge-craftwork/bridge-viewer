@@ -51,8 +51,9 @@ first.
 
 Debug builds take launch arguments for screenshots: `-LoadSample` or
 `-LoadFile <path>` (the latter not on the sandboxed Mac), then `-Layout
-<name>`, `-ShowGrid`, `-Search <text>` and `-ToggleCircling` (a re-render
-two seconds in, with search open).
+<name>`, `-ShowGrid`, `-Search <text>`, `-SwitchLayout <name>` (a layout
+change two seconds in, folding the strip as a tap does) and `-ToggleCircling`
+(a re-render two seconds in, with search open).
 
 ```bash
 cd PbnToPdfKit && swift test                    # the Swift API, on the Mac
