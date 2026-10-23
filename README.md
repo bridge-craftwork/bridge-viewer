@@ -1,15 +1,28 @@
 # Bridge Viewer
 
-An iPhone and iPad app for bridge teaching material.
+An iPhone, iPad and Mac app for bridge teaching material.
 
 A native SwiftUI app over [pbn-to-pdf](https://github.com/bridge-craftwork/pbn-to-pdf):
 open a PBN file, pick a layout, and get a printable PDF — declarer's plans,
 bidding sheets, dealer summaries, analysis, hand records.
 
-The renderer is the same Rust crate the CLI and the web app use, compiled for
-iOS as a static library rather than to WebAssembly. PDFKit shows the result, so
-scrolling and pinch-zoom are native, and the share sheet saves, prints or sends
-it.
+The renderer is the same Rust crate the CLI and the web app use, compiled as a
+static library for iOS and macOS rather than to WebAssembly. PDFKit shows the
+result, so scrolling and zoom are native; the share sheet (and on the Mac, Save
+and Print) send it on.
+
+The layout bar stays collapsed to one row showing the current layout --
+most people use one nearly always, and it (and the circling choices) is
+remembered between launches. Tap it for the strip of every layout. Search
+sits beside it: matches are highlighted, with a count and previous/next (⌘F,
+⌘G and ⇧⌘G on the Mac).
+
+For long documents there is a page counter, and a page grid: pinch out past
+fit-to-width (or use the Pages/Grid toggle, or View ▸ Show Page Grid on the
+Mac), pinch within the grid to change its size, tap a page to read it.
+
+One target builds both platforms, the way BTLabel does (`SDKROOT = auto`). The
+Mac app is sandboxed with read/write access to files the user picks.
 
 ## Layout
 
@@ -24,25 +37,27 @@ app/             the Xcode project
 
 ## Building
 
-Needs Xcode and the two iOS Rust targets:
+Needs Xcode and four Rust targets:
 
 ```bash
-rustup target add aarch64-apple-ios aarch64-apple-ios-sim
+rustup target add aarch64-apple-ios aarch64-apple-ios-sim aarch64-apple-darwin x86_64-apple-darwin
 scripts/build-xcframework.sh          # before the first Xcode build
 open app/BridgeViewer.xcodeproj
 ```
 
 The xcframework is generated and gitignored. Rebuild it whenever the renderer
 changes; `scripts/build-xcframework.sh --update` pulls the newest pbn-to-pdf
-first. In Debug, launching with `-LoadSample` opens the bundled sample.
+first.
 
-Tests for the Swift API run on a simulator (the xcframework has no macOS
-slice):
+Debug builds take launch arguments for screenshots: `-LoadSample` or
+`-LoadFile <path>` (the latter not on the sandboxed Mac), then `-Layout
+<name>`, `-ShowGrid`, `-Search <text>`, `-SwitchLayout <name>` (a layout
+change two seconds in, folding the strip as a tap does) and `-ToggleCircling`
+(a re-render two seconds in, with search open).
 
 ```bash
-cd PbnToPdfKit
-xcodebuild test -scheme PbnToPdfKit -destination 'platform=iOS Simulator,name=iPad Pro 11-inch (M5)'
-cargo test --manifest-path ../rust/Cargo.toml   # the C ABI, on the Mac
+cd PbnToPdfKit && swift test                    # the Swift API, on the Mac
+cargo test --manifest-path rust/Cargo.toml      # the C ABI
 ```
 
 ## Opening .pbn files

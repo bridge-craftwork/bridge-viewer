@@ -3,7 +3,7 @@ import PDFKit
 import Testing
 @testable import PbnToPdfKit
 
-// The xcframework carries iOS slices only, so run these on a simulator:
+// Run on the Mac with `swift test`, or on a simulator:
 //   xcodebuild test -scheme PbnToPdfKit -destination 'platform=iOS Simulator,name=iPad Pro 11-inch (M5)'
 
 private func fixture() throws -> String {
@@ -19,6 +19,13 @@ private func fixture() throws -> String {
         let doc = try #require(PDFDocument(data: data), "\(layout.rawValue)")
         #expect(doc.pageCount > 0, "\(layout.rawValue)")
     }
+}
+
+@Test func layoutsAreInDisplayOrder() {
+    #expect(PageLayout.all.map(\.rawValue) == [
+        "analysis", "hand-record", "dealer-summary", "bidding-sheets",
+        "declarers-plan-1up", "declarers-plan-2up", "declarers-plan",
+    ])
 }
 
 @Test func previewIsAFirstPageNotALesson() throws {

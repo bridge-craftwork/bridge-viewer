@@ -22,6 +22,17 @@ layout and build steps.
   update moves printpdf onto a newer azul-core, the `[patch.crates-io]` entry
   stops applying and the iOS build fails with E0425 in `resources.rs` — re-vendor
   that version with the same change, or drop it if upstream has fixed it.
+- **The Mac slice is one universal library.** An xcframework takes one library
+  per platform, so the script `lipo`s the arm64 and x86_64 Mac builds together.
+- **Pinch-to-grid watches, never captures.** On iPad a second pinch recognizer
+  runs alongside PDFView's; on the Mac `PinchablePDFView` observes magnify
+  events after `super`. Taking the gesture instead breaks PDFView's own zoom.
+- **No `ViewThatFits` around controls next to the PDF.** It keeps hidden
+  copies of its children; with buttons among them, PDFView's next document
+  swap sent UIKit's first-responder promotion into an endless loop and the
+  app hung on every re-render. `LayoutBar` measures its width instead. Repro:
+  launch with `-LoadSample -ToggleCircling` and sample the process for
+  `_setFirstResponder`.
 - **`SwiftUI.Layout` exists.** The renderer's layout type is `PageLayout` for
   that reason.
 
@@ -35,5 +46,8 @@ committed — breakage should surface the same day.
 
 Unlicense, like pbn-to-pdf and the sister repos.
 
-Layout display names and order in `PbnToPdfKit/Sources/PbnToPdfKit/Renderer.swift`
-mirror `layoutLabel` and `LAYOUT_ORDER` in pbn-to-pdf's `web/src/lib/render.js`.
+Layout display names in `PbnToPdfKit/Sources/PbnToPdfKit/Renderer.swift` mirror
+`layoutLabel` in pbn-to-pdf's `web/src/lib/render.js`. The order deliberately
+does not follow its `LAYOUT_ORDER`: analysis, hand record, dealer summary,
+bidding sheets, then the declarer's plans 1-, 2- and 4-up. The last layout
+chosen is saved and every file opens in it.

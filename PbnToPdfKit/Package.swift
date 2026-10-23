@@ -6,7 +6,7 @@ import PackageDescription
 
 let package = Package(
     name: "PbnToPdfKit",
-    platforms: [.iOS(.v18)],
+    platforms: [.iOS(.v18), .macOS(.v15)],
     products: [
         .library(name: "PbnToPdfKit", targets: ["PbnToPdfKit"]),
     ],

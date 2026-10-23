@@ -6,7 +6,7 @@
 # want the newest renderer -- the git dependency is unpinned, but cargo keeps
 # whatever revision it last resolved until asked.
 #
-#   scripts/build-xcframework.sh            # device + Apple-silicon simulator
+#   scripts/build-xcframework.sh            # iOS device, Apple-silicon simulator, macOS
 #   scripts/build-xcframework.sh --update   # cargo update first
 set -euo pipefail
 
@@ -14,11 +14,16 @@ root="$(cd "$(dirname "$0")/.." && pwd)"
 crate="$root/rust"
 out="$root/PbnToPdfKit/PbnToPdfFFI.xcframework"
 lib=libpbn_to_pdf_ffi.a
-targets=(aarch64-apple-ios aarch64-apple-ios-sim)
+ios_targets=(aarch64-apple-ios aarch64-apple-ios-sim)
+# An xcframework holds one library per platform, so the two Mac architectures
+# are merged into one universal library first.
+mac_targets=(aarch64-apple-darwin x86_64-apple-darwin)
+targets=("${ios_targets[@]}" "${mac_targets[@]}")
 
-# Matches the app's IPHONEOS_DEPLOYMENT_TARGET, so the linker doesn't warn
-# that the library was built for a newer iOS than the app supports.
+# Match the app's deployment targets, so the linker doesn't warn that the
+# library was built for a newer OS than the app supports.
 export IPHONEOS_DEPLOYMENT_TARGET=18.0
+export MACOSX_DEPLOYMENT_TARGET=15.0
 
 if [[ "${1:-}" == "--update" ]]; then
   cargo update --manifest-path "$crate/Cargo.toml"
@@ -38,11 +43,18 @@ for t in "${targets[@]}"; do
   cargo build --manifest-path "$crate/Cargo.toml" --release --lib --target "$t"
 done
 
+mac_dir="$crate/target/universal-apple-darwin/release"
+mkdir -p "$mac_dir"
+mac_libs=()
+for t in "${mac_targets[@]}"; do mac_libs+=("$crate/target/$t/release/$lib"); done
+lipo -create "${mac_libs[@]}" -output "$mac_dir/$lib"
+
 rm -rf "$out"
 args=()
-for t in "${targets[@]}"; do
+for t in "${ios_targets[@]}"; do
   args+=(-library "$crate/target/$t/release/$lib" -headers "$crate/include")
 done
+args+=(-library "$mac_dir/$lib" -headers "$crate/include")
 xcodebuild -create-xcframework "${args[@]}" -output "$out" >/dev/null
 
 echo "Built $out"

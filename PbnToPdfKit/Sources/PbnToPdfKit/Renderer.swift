@@ -7,8 +7,9 @@ public struct PageLayout: Hashable, Sendable, Identifiable {
     public var id: String { rawValue }
 
     /// Every layout the linked renderer knows, in the app's display order:
-    /// the ones a teacher reaches for most come first (matching the web app),
-    /// then anything newer the renderer has grown since.
+    /// whole-deal views first, then the declarer's plans by boards per page,
+    /// then anything newer the renderer has grown since. (The web app orders
+    /// its gallery differently, declarer's plans first.)
     public static let all: [PageLayout] = {
         let names = takeString(ptp_layouts()).split(separator: "\n").map(String.init)
         return names
@@ -17,8 +18,8 @@ public struct PageLayout: Hashable, Sendable, Identifiable {
     }()
 
     private static let order = [
-        "declarers-plan-2up", "declarers-plan-1up", "declarers-plan",
-        "bidding-sheets", "dealer-summary", "analysis", "hand-record",
+        "analysis", "hand-record", "dealer-summary", "bidding-sheets",
+        "declarers-plan-1up", "declarers-plan-2up", "declarers-plan",
     ]
 
     /// Display name. Mirrors `layoutLabel` in the web app.
