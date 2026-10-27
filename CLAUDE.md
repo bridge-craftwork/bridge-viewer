@@ -50,6 +50,23 @@ layout and build steps.
 - **The product is "Bridge Viewer", the module `BridgeViewer`.** `PRODUCT_NAME`
   carries the space so Finder shows it; `PRODUCT_MODULE_NAME` pins the module.
 
+## Direction: the PDF stays the view, the bridge data rides inside it
+
+Planned, not built. The app keeps showing pbn-to-pdf's PDF rather than drawing
+its own layouts. Bridge knowledge (a hand index first) comes from **Contract
+5**: the attachments and `lesson-block:` link annotations that lesson PDFs
+already carry. pbn-to-pdf is to produce a PBN profile of it, and this app to
+render with it and read the click map back through the FFI. The plan, including
+the contract's move to lesson-stage, is
+`../lesson-stage/docs/contract-5-shared-plan.md`. Until it lands, the contract
+text is `../lesson-studio/documentation/contracts/pdf-attachments.md`.
+
+Sister repos in the same family: **lesson-studio** (lesson editor, Contract 5's
+first producer), **lesson-stage** (iPad presenter, its consumer; its card-play
+popout runs the Bridge-Classroom Vue components in a web view, see its
+ADR-003), **pbn-to-pdf** (the renderer). Don't build interactive hands here:
+that's lesson-stage's popout.
+
 ## Conventions
 
 Matches the sister apps (Kennit, BTLabel, LessonStage): plain `.xcodeproj` with
