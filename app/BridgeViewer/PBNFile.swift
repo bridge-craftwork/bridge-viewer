@@ -4,7 +4,20 @@ import UniformTypeIdentifiers
 
 extension UTType {
     /// Declared in Info.plist; keep the identifier in step.
-    static let pbn = UTType(importedAs: "com.popperbiz.pbn", conformingTo: .plainText)
+    static let pbn = UTType(exportedAs: "com.popperbiz.pbn", conformingTo: .plainText)
+
+    /// What the file picker accepts. Another app may export its own type for
+    /// .pbn and win -- on a Mac with Shark Bridge installed, .pbn files can be
+    /// com.emabridge.bridgedeal, which doesn't even conform to text -- so also
+    /// take whatever the system maps .pbn to.
+    static let pbnFiles: [UTType] = {
+        var types: [UTType] = [.pbn]
+        for type in UTType.types(tag: "pbn", tagClass: .filenameExtension, conformingTo: nil)
+        where !types.contains(type) {
+            types.append(type)
+        }
+        return types + [.plainText]
+    }()
 }
 
 /// A PBN file, read into memory.
