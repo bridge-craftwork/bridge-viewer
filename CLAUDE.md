@@ -57,9 +57,9 @@ its own layouts. Bridge knowledge (a hand index first) comes from **Contract
 5**: the attachments and `lesson-block:` link annotations that lesson PDFs
 already carry. pbn-to-pdf is to produce a PBN profile of it, and this app to
 render with it and read the click map back through the FFI. The plan, including
-the contract's move to lesson-stage, is
-`../lesson-stage/docs/contract-5-shared-plan.md`. Until it lands, the contract
-text is `../lesson-studio/documentation/contracts/pdf-attachments.md`.
+what this app has to do, is `../lesson-stage/docs/contract-5-shared-plan.md`.
+The contract (approved 2026-10-27, `pbn` profile at payload version 2) is
+`../lesson-stage/docs/contracts/pdf-attachments.md`.
 
 Sister repos in the same family: **lesson-studio** (lesson editor, Contract 5's
 first producer), **lesson-stage** (iPad presenter, its consumer; its card-play
