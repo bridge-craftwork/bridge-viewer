@@ -32,6 +32,16 @@ final class DocumentModel {
     /// Why a file didn't open; shown as an alert, over whatever is open.
     var openError: String?
 
+    /// Where each board sits in `pdf`, from the click map the renderer embeds
+    /// in it (Contract 5). Several per board on bidding sheets.
+    private(set) var figures: [BoardFigure] = []
+    /// One entry per board, at its first appearance: the board index.
+    var boards: [BoardFigure] {
+        var seen = Set<Int>()
+        return figures.filter { seen.insert($0.board).inserted }
+    }
+    var isShowingBoards = false
+
     /// First-page thumbnails, one per layout, so a layout can be recognised
     /// before it is chosen -- the same idea as the web app's gallery.
     private(set) var previews: [PageLayout: CGImage] = [:]
@@ -44,8 +54,13 @@ final class DocumentModel {
     var currentPage = 0
     var pageCount: Int { pdf?.pageCount ?? 0 }
     /// A jump for PDFView to make. A fresh id per request, so asking for the
-    /// page it is already on still moves it there.
-    struct PageRequest: Equatable { let index: Int; let id = UUID() }
+    /// page it is already on still moves it there. With a `rect`, the view
+    /// scrolls to that part of the page rather than its top.
+    struct PageRequest: Equatable {
+        let index: Int
+        var rect: CGRect?
+        let id = UUID()
+    }
     private(set) var pageRequest: PageRequest?
     private(set) var thumbnails: ThumbnailLoader?
 
@@ -53,6 +68,13 @@ final class DocumentModel {
     func show(page index: Int) {
         pageRequest = PageRequest(index: index)
         viewMode = .pages
+    }
+
+    /// Go to a board where the page draws it.
+    func show(_ figure: BoardFigure) {
+        pageRequest = PageRequest(index: figure.page, rect: figure.rect)
+        viewMode = .pages
+        isShowingBoards = false
     }
 
     // MARK: Search
@@ -139,12 +161,17 @@ final class DocumentModel {
         guard let file else { return }
         generation += 1
         let mine = generation
-        let (text, layout, options) = (file.text, layout, options)
+        let (text, layout, options, source) = (file.text, layout, options, file.name)
         let name = Self.fileName(stem: file.stem, layout: layout)
         isRendering = true
         Task.detached(priority: .userInitiated) {
-            let result = Result { try Renderer.render(text, layout: layout, options: options) }
-            let url = try? result.get().writeToShareDirectory(named: name)
+            // The PDF carries its source and a map of its boards (Contract 5),
+            // so a saved or shared copy opens in lesson-stage with tappable
+            // boards; the map also drives the board index here.
+            let result = Result {
+                try Renderer.renderEmbedded(text, layout: layout, options: options, sourceName: source)
+            }
+            let url = try? result.get().pdf.writeToShareDirectory(named: name)
             await MainActor.run {
                 guard mine == self.generation else {
                     url.map(Self.discard)
@@ -153,10 +180,12 @@ final class DocumentModel {
                 self.isRendering = false
                 self.shareURL.map(Self.discard)
                 switch result {
-                case .success(let data):
+                case .success(let rendered):
+                    let data = rendered.pdf
                     let page = keepPage ? self.currentPage : 0
                     self.pdf = PDFDocument(data: data)
                     self.pdfData = data
+                    self.figures = rendered.figures
                     self.thumbnails = ThumbnailLoader(data: data)
                     self.shareURL = url
                     self.error = nil
@@ -168,6 +197,7 @@ final class DocumentModel {
                     self.pdf = nil
                     self.searchResults = []
                     self.pdfData = nil
+                    self.figures = []
                     self.thumbnails = nil
                     self.shareURL = nil
                     self.error = error.localizedDescription
@@ -220,6 +250,11 @@ final class DocumentModel {
         }
         while pdf == nil && file != nil { try? await Task.sleep(for: .milliseconds(100)) }
         if args.contains("-ShowGrid") { viewMode = .grid }
+        if args.contains("-ShowBoards") { isShowingBoards = true }
+        if let board = value(after: "-GoToBoard").flatMap(Int.init),
+           let figure = boards.first(where: { $0.board == board }) {
+            show(figure)
+        }
         if let query = value(after: "-Search") {
             try? await Task.sleep(for: .seconds(1))
             isSearching = true
