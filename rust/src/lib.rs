@@ -5,6 +5,12 @@
 //! pure `&[Board] -> Vec<u8>` function with its fonts and card art compiled
 //! in, so nothing crosses this boundary but strings and bytes.
 //!
+//! [`ptp_render_embedded`] is the one the app renders with. Its PDF carries
+//! Contract 5's `pbn` profile (lesson-stage's `docs/contracts/
+//! pdf-attachments.md`), so a saved or shared PDF opens in lesson-stage with
+//! tappable boards, and it hands the click map back as JSON so the app can
+//! build its board index without reading attachments out of the PDF.
+//!
 //! Ownership: every buffer or string this library returns is allocated here
 //! and must come back through [`ptp_buffer_free`] or [`ptp_string_free`].
 //! Panics are caught at the boundary and reported as errors -- unwinding into
@@ -19,7 +25,9 @@ use std::ptr;
 use std::str::FromStr;
 
 use pbn_to_pdf::cli::parse_board_range;
-use pbn_to_pdf::{parse_pbn, render_boards, Board, Layout, RenderOptions};
+use pbn_to_pdf::{
+    parse_pbn, render_boards, render_boards_embedded, Board, EmbedSource, Layout, RenderOptions,
+};
 
 /// Bytes owned by this library. Free with [`ptp_buffer_free`].
 #[repr(C)]
@@ -79,10 +87,51 @@ pub unsafe extern "C" fn ptp_render(
 ) -> i32 {
     boundary(out_pdf, out_error, || {
         let (pbn, layout, options) = (str_arg(pbn)?, str_arg(layout)?, read_options(options)?);
-        render_selected(pbn, layout, &options, |boards| {
+        render_selected(pbn, layout, &options, None, |boards| {
             select_boards(boards, options.boards.as_deref())
         })
+        .map(|(pdf, _)| pdf)
     })
+}
+
+/// Render PBN text to a PDF carrying Contract 5's payload: the source file
+/// embedded as `source_name`, the rendered boards, a click map, and a
+/// `lesson-block:` link over each board.
+///
+/// On `PTP_OK`, `*out_pdf` holds the document and `*out_click_map` the click
+/// map (`lesson-blocks.json`) as JSON. Otherwise `*out_error` holds a message.
+/// Either way, free what you were given.
+///
+/// # Safety
+/// As [`ptp_render`]; `source_name` must be valid NUL-terminated UTF-8, and
+/// `out_click_map` valid for writes.
+#[no_mangle]
+pub unsafe extern "C" fn ptp_render_embedded(
+    pbn: *const c_char,
+    layout: *const c_char,
+    options: *const PtpOptions,
+    source_name: *const c_char,
+    out_pdf: *mut PtpBuffer,
+    out_click_map: *mut *mut c_char,
+    out_error: *mut *mut c_char,
+) -> i32 {
+    out_click_map.write(ptr::null_mut());
+    let mut click_map = None;
+    let status = boundary(out_pdf, out_error, || {
+        let (pbn, layout, options) = (str_arg(pbn)?, str_arg(layout)?, read_options(options)?);
+        let name = str_arg(source_name)?;
+        let (pdf, map) = render_selected(pbn, layout, &options, Some(name), |boards| {
+            select_boards(boards, options.boards.as_deref())
+        })?;
+        click_map = map;
+        Ok(pdf)
+    });
+    if status == PTP_OK {
+        if let Some(map) = click_map {
+            out_click_map.write(into_c_string(map));
+        }
+    }
+    status
 }
 
 /// Render a preview of `layout`: its own representative number of boards,
@@ -101,10 +150,11 @@ pub unsafe extern "C" fn ptp_render_preview(
     boundary(out_pdf, out_error, || {
         let (pbn, layout, options) = (str_arg(pbn)?, str_arg(layout)?, read_options(options)?);
         let count = Layout::from_str(layout)?.preview_boards() as usize;
-        render_selected(pbn, layout, &options, |mut boards| {
+        render_selected(pbn, layout, &options, None, |mut boards| {
             boards.truncate(count);
             Ok(boards)
         })
+        .map(|(pdf, _)| pdf)
     })
 }
 
@@ -239,16 +289,20 @@ fn into_c_string(s: String) -> *mut c_char {
         .into_raw()
 }
 
+/// A board and its index in the file, which the embedded payload needs to copy
+/// the board's record from the source as written.
+type Numbered = (usize, Board);
+
 /// Apply a `boards` spec the way the CLI's `--boards` does: select by
 /// `[Board]` number, and drop boards that carry no number.
-fn select_boards(boards: Vec<Board>, spec: Option<&str>) -> Result<Vec<Board>> {
+fn select_boards(boards: Vec<Numbered>, spec: Option<&str>) -> Result<Vec<Numbered>> {
     let Some(spec) = spec.map(str::trim).filter(|s| !s.is_empty()) else {
         return Ok(boards);
     };
     let wanted = parse_board_range(spec).map_err(|e| format!("Invalid board range: {e}"))?;
-    let selected: Vec<Board> = boards
+    let selected: Vec<Numbered> = boards
         .into_iter()
-        .filter(|b| b.number.is_some_and(|n| wanted.contains(&n)))
+        .filter(|(_, b)| b.number.is_some_and(|n| wanted.contains(&n)))
         .collect();
     if selected.is_empty() {
         return Err(format!(
@@ -259,13 +313,16 @@ fn select_boards(boards: Vec<Board>, spec: Option<&str>) -> Result<Vec<Board>> {
     Ok(selected)
 }
 
-/// Parse, choose boards, render -- the body every entry point shares.
+/// Parse, choose boards, render -- the body every entry point shares. With a
+/// `source_name`, the PDF carries the Contract 5 payload and the click map
+/// comes back too.
 fn render_selected(
     pbn: &str,
     layout: &str,
     options: &Options,
-    choose: impl FnOnce(Vec<Board>) -> Result<Vec<Board>>,
-) -> Result<Vec<u8>> {
+    source_name: Option<&str>,
+    choose: impl FnOnce(Vec<Numbered>) -> Result<Vec<Numbered>>,
+) -> Result<(Vec<u8>, Option<String>)> {
     let layout = Layout::from_str(layout)?;
     let pbn_file = parse_pbn(pbn).map_err(|e| e.to_string())?;
     // parse_pbn yields an empty list for input with no boards, and rendering
@@ -273,15 +330,32 @@ fn render_selected(
     if pbn_file.boards.is_empty() {
         return Err("No boards found. Is this a PBN file?".into());
     }
-    let boards = choose(pbn_file.boards)?;
+    let (positions, boards): (Vec<usize>, Vec<Board>) =
+        choose(pbn_file.boards.into_iter().enumerate().collect())?
+            .into_iter()
+            .unzip();
     // `%` header lines carry the Bridge Composer directives.
     let metadata_comments: Vec<String> = pbn
         .lines()
         .filter(|line| line.starts_with('%'))
         .map(String::from)
         .collect();
-    render_boards(&boards, &metadata_comments, layout, options.render.clone())
-        .map_err(|e| e.to_string())
+    let Some(name) = source_name else {
+        return render_boards(&boards, &metadata_comments, layout, options.render)
+            .map(|pdf| (pdf, None))
+            .map_err(|e| e.to_string());
+    };
+    let source = EmbedSource { name, text: pbn };
+    render_boards_embedded(
+        &boards,
+        &positions,
+        &metadata_comments,
+        layout,
+        options.render,
+        &source,
+    )
+    .map(|rendered| (rendered.pdf, Some(rendered.click_map)))
+    .map_err(|e| e.to_string())
 }
 
 #[cfg(test)]
@@ -305,7 +379,13 @@ mod tests {
         let (pbn, layout) = (CString::new(pbn).unwrap(), CString::new(layout).unwrap());
         let mut out = PtpBuffer::EMPTY;
         let mut err = ptr::null_mut();
-        let status = f(pbn.as_ptr(), layout.as_ptr(), ptr::null(), &mut out, &mut err);
+        let status = f(
+            pbn.as_ptr(),
+            layout.as_ptr(),
+            ptr::null(),
+            &mut out,
+            &mut err,
+        );
         if status == PTP_OK {
             let bytes = std::slice::from_raw_parts(out.ptr, out.len).to_vec();
             ptp_buffer_free(out);
@@ -331,6 +411,48 @@ mod tests {
         assert!(err.contains("No boards"), "{err}");
         let err = unsafe { call(ptp_render, PBN, "no-such-layout") }.unwrap_err();
         assert!(!err.is_empty());
+    }
+
+    #[test]
+    fn the_embedded_render_carries_the_payload_and_returns_its_click_map() {
+        let (pbn, layout, name) = (
+            CString::new(PBN).unwrap(),
+            CString::new("hand-record").unwrap(),
+            CString::new("Lesson.pbn").unwrap(),
+        );
+        let mut out = PtpBuffer::EMPTY;
+        let mut map = ptr::null_mut();
+        let mut err = ptr::null_mut();
+        let status = unsafe {
+            ptp_render_embedded(
+                pbn.as_ptr(),
+                layout.as_ptr(),
+                ptr::null(),
+                name.as_ptr(),
+                &mut out,
+                &mut map,
+                &mut err,
+            )
+        };
+        assert_eq!(status, PTP_OK);
+        let pdf = unsafe { std::slice::from_raw_parts(out.ptr, out.len) }.to_vec();
+        let json = unsafe { CStr::from_ptr(map) }.to_str().unwrap().to_owned();
+        unsafe {
+            ptp_buffer_free(out);
+            ptp_string_free(map);
+        }
+        assert!(json.contains("\"version\":2"), "{json}");
+        assert!(json.contains("\"kind\":\"board\""), "{json}");
+        let text = String::from_utf8_lossy(&pdf);
+        assert!(
+            text.contains("(Lesson.pbn)"),
+            "the source is embedded under its name"
+        );
+        assert!(text.contains("lesson-block:0"), "a link over the board");
+
+        // The plain render stays plain.
+        let plain = unsafe { call(ptp_render, PBN, "hand-record") }.unwrap();
+        assert!(!String::from_utf8_lossy(&plain).contains("lesson-block:"));
     }
 
     #[test]

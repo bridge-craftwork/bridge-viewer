@@ -46,6 +46,34 @@ private func fixture() throws -> String {
     #expect(doc.pageCount == 2)
 }
 
+@Test func embeddedRenderListsEveryBoardsFigure() throws {
+    let pbn = try fixture()
+    let count = try #require(Renderer.boardCount(pbn))
+    let layout = try #require(PageLayout.all.first { $0.rawValue == "declarers-plan" })
+    let rendered = try Renderer.renderEmbedded(pbn, layout: layout, sourceName: "Drury.pbn")
+    let doc = try #require(PDFDocument(data: rendered.pdf))
+
+    #expect(rendered.figures.map(\.board) == Array(1...count))
+    #expect(rendered.figures.map(\.page) == (0..<count).map { $0 / 4 }, "four to a page")
+    // The links PDFKit sees carry the same rects as the figures.
+    for figure in rendered.figures {
+        let page = try #require(doc.page(at: figure.page))
+        let link = page.annotations.first {
+            ($0.action as? PDFActionURL)?.url?.absoluteString == "lesson-block:\(figure.id)"
+        }
+        let bounds = try #require(link?.bounds, "figure \(figure.id)")
+        #expect(abs(bounds.minX - figure.rect.minX) < 0.5 && abs(bounds.maxY - figure.rect.maxY) < 0.5)
+        #expect(page.bounds(for: .mediaBox).contains(figure.rect))
+    }
+}
+
+@Test func bareRendersCarryNoLinks() throws {
+    let pbn = try fixture()
+    let doc = try #require(PDFDocument(data: try Renderer.render(pbn, layout: PageLayout.all[0])))
+    let page = try #require(doc.page(at: 0))
+    #expect(!page.annotations.contains { $0.action is PDFActionURL })
+}
+
 @Test func notAPBNIsAnError() {
     #expect(Renderer.boardCount("hello") == 0)
     #expect(throws: RenderError.self) {

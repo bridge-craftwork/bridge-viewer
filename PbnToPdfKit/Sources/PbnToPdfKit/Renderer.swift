@@ -1,3 +1,4 @@
+import CoreGraphics
 import Foundation
 import PbnToPdfFFI
 
@@ -52,6 +53,31 @@ public struct RenderOptions: Sendable, Equatable {
     public init() {}
 }
 
+/// Where one board sits in a rendered PDF, from the Contract 5 click map the
+/// renderer embeds (lesson-stage's `docs/contracts/pdf-attachments.md`).
+///
+/// A board can have several figures: bidding sheets show each board on four
+/// pages.
+public struct BoardFigure: Sendable, Equatable, Identifiable {
+    /// The figure's index in the click map, and its `lesson-block:` link.
+    public let id: Int
+    /// 0-based page index.
+    public let page: Int
+    /// In page space, points from the bottom-left, the way PDFKit has it.
+    public let rect: CGRect
+    /// The board's number in the PDF's embedded deals, 1 upward.
+    public let board: Int
+    /// The board's own number in the file, as the page labels it.
+    public let label: String
+}
+
+/// A PDF with its payload attached, and where its boards are.
+public struct RenderedDocument: Sendable {
+    public let pdf: Data
+    /// In reading order.
+    public let figures: [BoardFigure]
+}
+
 public struct RenderError: LocalizedError, Sendable {
     public let message: String
     public var errorDescription: String? { message }
@@ -64,6 +90,27 @@ public enum Renderer {
         _ pbn: String, layout: PageLayout, options: RenderOptions = .init()
     ) throws(RenderError) -> Data {
         try call(ptp_render, pbn, layout, options)
+    }
+
+    /// Render with the Contract 5 payload embedded, so a saved or shared PDF
+    /// carries its source and opens in lesson-stage with tappable boards.
+    /// `sourceName` is the filename the embedded PBN carries.
+    public static func renderEmbedded(
+        _ pbn: String, layout: PageLayout, options: RenderOptions = .init(), sourceName: String
+    ) throws(RenderError) -> RenderedDocument {
+        var pdf = PtpBuffer(ptr: nil, len: 0)
+        var clickMap: UnsafeMutablePointer<CChar>?
+        var error: UnsafeMutablePointer<CChar>?
+        let status = withOptions(options) { opts in
+            ptp_render_embedded(pbn, layout.rawValue, opts, sourceName, &pdf, &clickMap, &error)
+        }
+        let map = takeString(clickMap)
+        guard status == PTP_OK, let ptr = pdf.ptr else {
+            throw RenderError(message: error.map(takeString) ?? "Rendering failed.")
+        }
+        let data = Data(bytes: ptr, count: pdf.len)
+        ptp_buffer_free(pdf)
+        return RenderedDocument(pdf: data, figures: ClickMap.figures(in: map))
     }
 
     /// The layout's representative opening boards — enough for a first page.
@@ -116,6 +163,35 @@ public enum Renderer {
         }
         guard let boards = options.boards else { return make(nil) }
         return boards.withCString(make)
+    }
+}
+
+/// The fields of `lesson-blocks.json` the app uses. Unknown fields are ignored,
+/// as the contract requires; a map that won't decode gives no figures, and the
+/// PDF still shows.
+private struct ClickMap: Decodable {
+    struct Block: Decodable {
+        let index: Int
+        let page: Int?
+        let rect: [Double]?
+        let board: Int?
+        let sourceBoard: String?
+    }
+    let blocks: [Block]
+
+    static func figures(in json: String) -> [BoardFigure] {
+        guard let map = try? JSONDecoder().decode(ClickMap.self, from: Data(json.utf8)) else { return [] }
+        return map.blocks.compactMap { block in
+            guard let page = block.page, let rect = block.rect, rect.count == 4, let board = block.board
+            else { return nil }
+            return BoardFigure(
+                id: block.index,
+                page: page - 1,
+                rect: CGRect(x: rect[0], y: rect[1], width: rect[2] - rect[0], height: rect[3] - rect[1]),
+                board: board,
+                label: block.sourceBoard ?? String(board)
+            )
+        }
     }
 }
 

@@ -49,10 +49,12 @@ struct PDFKitView {
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
+
     fileprivate func configure(_ view: PDFView, _ coordinator: Coordinator) {
         view.autoScales = true
         view.displayMode = .singlePageContinuous
         view.displaysPageBreaks = true
+        view.delegate = coordinator
         NotificationCenter.default.addObserver(
             coordinator, selector: #selector(Coordinator.pageChanged(_:)),
             name: .PDFViewPageChanged, object: view)
@@ -82,7 +84,11 @@ struct PDFKitView {
         if let request, request != coordinator.lastRequest,
            let page = document?.page(at: request.index) {
             coordinator.lastRequest = request
-            view.go(to: page)
+            if let rect = request.rect {
+                view.go(to: rect, on: page)
+            } else {
+                view.go(to: page)
+            }
         }
         if search.generation != coordinator.lastSearch {
             coordinator.lastSearch = search.generation
@@ -163,3 +169,18 @@ extension PDFKitView.Coordinator: UIGestureRecognizerDelegate {
     }
 }
 #endif
+
+extension PDFKitView.Coordinator: PDFViewDelegate {
+    /// Each board carries a `lesson-block:` link (Contract 5) for presenters
+    /// such as lesson-stage. Here a click on one is just a click on the page:
+    /// left alone, PDFView would try to open the URL. Any other link opens
+    /// as usual.
+    func pdfViewWillClick(onLink sender: PDFView, with url: URL) {
+        guard url.scheme != "lesson-block" else { return }
+        #if os(macOS)
+        NSWorkspace.shared.open(url)
+        #else
+        UIApplication.shared.open(url)
+        #endif
+    }
+}

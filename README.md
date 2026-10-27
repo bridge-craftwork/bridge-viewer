@@ -21,6 +21,14 @@ For long documents there is a page counter, and a page grid: pinch out past
 fit-to-width (or use the Pages/Grid toggle, or View ▸ Show Page Grid on the
 Mac), pinch within the grid to change its size, tap a page to read it.
 
+The Boards button (View ▸ Go to Board…, ⌥⌘B on the Mac) lists every board with
+its page. Choose one to go straight to it.
+
+Every PDF the app saves, prints or shares carries its own source: the `.pbn`,
+the boards, and where each one sits on the page (Contract 5, the format
+lesson-studio's lesson PDFs use). Open one in lesson-stage and its boards can
+be tapped and played out.
+
 One target builds both platforms, the way BTLabel does (`SDKROOT = auto`). The
 Mac app is sandboxed with read/write access to files the user picks.
 
@@ -51,7 +59,7 @@ first.
 
 Debug builds take launch arguments for screenshots: `-LoadSample` or
 `-LoadFile <path>` (the latter not on the sandboxed Mac), then `-Layout
-<name>`, `-ShowGrid`, `-Search <text>`, `-SwitchLayout <name>` (a layout
+<name>`, `-ShowGrid`, `-ShowBoards` (the board index open), `-GoToBoard <n>`, `-Search <text>`, `-SwitchLayout <name>` (a layout
 change two seconds in, folding the strip as a tap does) and `-ToggleCircling`
 (a re-render two seconds in, with search open).
 

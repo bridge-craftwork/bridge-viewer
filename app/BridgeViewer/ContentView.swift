@@ -60,6 +60,17 @@ private struct Toolbar: ToolbarContent {
         ToolbarItem(placement: .navigation) {
             Button("Open", systemImage: "folder") { model.isImporting = true }
         }
+        if !model.boards.isEmpty {
+            ToolbarItem(placement: .primaryAction) {
+                Button("Boards", systemImage: "list.number") { model.isShowingBoards = true }
+                    .help("Go to a board")
+                    .popover(isPresented: $model.isShowingBoards) {
+                        BoardIndex()
+                            .frame(minWidth: 240, idealHeight: 420)
+                            .presentationDetents([.medium, .large])
+                    }
+            }
+        }
         if model.pdf != nil {
             ToolbarItem(placement: .primaryAction) {
                 Picker("View", selection: $model.viewMode) {
@@ -82,6 +93,28 @@ private struct Toolbar: ToolbarContent {
             ToolbarItem(placement: .primaryAction) {
                 ShareLink(item: url)
             }
+        }
+    }
+}
+
+/// Every board in the PDF, in reading order, from the click map the renderer
+/// embeds (Contract 5). Choosing one goes to it where the page draws it.
+private struct BoardIndex: View {
+    @Environment(DocumentModel.self) private var model
+
+    var body: some View {
+        List(model.boards) { figure in
+            Button { model.show(figure) } label: {
+                HStack {
+                    Text("Board \(figure.label)")
+                    Spacer()
+                    Text("Page \(figure.page + 1)")
+                        .foregroundStyle(.secondary)
+                        .monospacedDigit()
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
         }
     }
 }

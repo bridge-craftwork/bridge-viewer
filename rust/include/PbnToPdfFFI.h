@@ -32,6 +32,13 @@ typedef struct PtpOptions {
 int32_t ptp_render(const char *pbn, const char *layout, const PtpOptions *options,
                    PtpBuffer *out_pdf, char **out_error);
 
+/// Render to a PDF carrying Contract 5's payload: the source embedded as
+/// `source_name`, a click map, and a lesson-block: link over each board. On
+/// PTP_OK, *out_click_map holds the click map JSON (free with ptp_string_free).
+int32_t ptp_render_embedded(const char *pbn, const char *layout, const PtpOptions *options,
+                            const char *source_name, PtpBuffer *out_pdf,
+                            char **out_click_map, char **out_error);
+
 /// Render a preview: the layout's representative opening boards.
 int32_t ptp_render_preview(const char *pbn, const char *layout, const PtpOptions *options,
                            PtpBuffer *out_pdf, char **out_error);

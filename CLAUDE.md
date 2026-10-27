@@ -52,14 +52,23 @@ layout and build steps.
 
 ## Direction: the PDF stays the view, the bridge data rides inside it
 
-Planned, not built. The app keeps showing pbn-to-pdf's PDF rather than drawing
-its own layouts. Bridge knowledge (a hand index first) comes from **Contract
-5**: the attachments and `lesson-block:` link annotations that lesson PDFs
-already carry. pbn-to-pdf is to produce a PBN profile of it, and this app to
-render with it and read the click map back through the FFI. The plan, including
-what this app has to do, is `../lesson-stage/docs/contract-5-shared-plan.md`.
-The contract (approved 2026-10-27, `pbn` profile at payload version 2) is
-`../lesson-stage/docs/contracts/pdf-attachments.md`.
+The app keeps showing pbn-to-pdf's PDF rather than drawing its own layouts.
+Bridge knowledge comes from **Contract 5**
+(`../lesson-stage/docs/contracts/pdf-attachments.md`, `pbn` profile, payload
+version 2), which pbn-to-pdf embeds:
+
+- **`ptp_render_embedded`** is what the app renders with. Previews stay on
+  `ptp_render_preview`, without the payload. It returns the click map JSON
+  alongside the PDF, so the app never reads attachments out with
+  `CGPDFDocument`. `Renderer.renderEmbedded` decodes it into `BoardFigure`s,
+  which drive the board index.
+- **Saved and shared PDFs carry the payload,** so they open in lesson-stage
+  with tappable boards.
+- **The `lesson-block:` links are for presenters, not for this app.**
+  `PDFKitView`'s delegate swallows clicks on them, because PDFView would
+  otherwise try to open the URL. Other links still open.
+
+The plan this came from is `../lesson-stage/docs/contract-5-shared-plan.md`.
 
 Sister repos in the same family: **lesson-studio** (lesson editor, Contract 5's
 first producer), **lesson-stage** (iPad presenter, its consumer; its card-play

@@ -25,14 +25,15 @@ struct BridgeViewerApp: App {
             #if DEBUG
             // Launch arguments for screenshotting without tapping through:
             // `-LoadSample`, or `-LoadFile <path>`; then `-Layout <name>`,
-            // `-ShowGrid` and `-Search <text>`.
+            // `-ShowGrid`, `-ShowBoards`, `-GoToBoard <n>` and `-Search <text>`.
             .task { await model.applyDebugArguments(CommandLine.arguments) }
             #endif
     }
 }
 
 #if os(macOS)
-/// File ▸ Open, Save PDF and Print, and View ▸ the page grid.
+/// File ▸ Open, Save PDF and Print, and View ▸ the page grid and the board
+/// index.
 private struct MenuCommands: Commands {
     let model: DocumentModel
 
@@ -62,6 +63,9 @@ private struct MenuCommands: Commands {
             }
             .keyboardShortcut("g", modifiers: [.command, .option])
             .disabled(model.pdf == nil)
+            Button("Go to Board…") { model.isShowingBoards = true }
+                .keyboardShortcut("b", modifiers: [.command, .option])
+                .disabled(model.boards.isEmpty)
             Divider()
         }
     }
