@@ -20,7 +20,7 @@ struct ContentView: View {
             .navigationBarTitleDisplayMode(.inline)
             #endif
             .toolbar { Toolbar() }
-            .fileImporter(isPresented: $model.isImporting, allowedContentTypes: [.pbn, .plainText]) { result in
+            .fileImporter(isPresented: $model.isImporting, allowedContentTypes: UTType.pbnFiles) { result in
                 switch result {
                 case .success(let url): model.open(url: url)
                 case .failure(let error): model.openError = error.localizedDescription

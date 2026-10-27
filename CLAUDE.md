@@ -35,6 +35,20 @@ layout and build steps.
   `_setFirstResponder`.
 - **`SwiftUI.Layout` exists.** The renderer's layout type is `PageLayout` for
   that reason.
+- **Old builds stay registered on the Mac.** Launch Services keeps every copy
+  it has seen — stale builds under `build/`, simulator builds, apps in the
+  Trash — and an old copy's `Info.plist` can win type and icon lookups.
+  `lsregister -dump` lists them; `lsregister -u <path>` drops one. Dragging an
+  app to the Trash doesn't unregister it.
+- **The Mac caches icons per app path.** After an icon change, Finder and the
+  Dock can keep the old one (even the generic placeholder) until the bundle is
+  touched and re-registered with `lsregister -f`. Not a bug in the build.
+- **Another app may own `.pbn`.** Shark Bridge Game exports its own type for
+  the extension, and which of two exports wins is undocumented. The extension
+  claim in `Info.plist` and `UTType.pbnFiles` are what keep opening working
+  regardless; don't narrow either to `com.popperbiz.pbn`.
+- **The product is "Bridge Viewer", the module `BridgeViewer`.** `PRODUCT_NAME`
+  carries the space so Finder shows it; `PRODUCT_MODULE_NAME` pins the module.
 
 ## Conventions
 

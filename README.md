@@ -62,10 +62,18 @@ cargo test --manifest-path rust/Cargo.toml      # the C ABI
 
 ## Opening .pbn files
 
-iOS has no system type for `.pbn` — which is why Safari greys PBN files out of a
-file picker. `app/Info.plist` imports one (`com.popperbiz.pbn`, conforming to
-plain text) and claims it as a viewer, so PBN files can be picked here, opened
-from Files, and sent to the app from the share sheet.
+Neither iOS nor macOS has a system type for `.pbn` — which is why Safari greys
+PBN files out of a file picker. PBN is an open specification with no owner, so
+`app/Info.plist` exports one (`com.popperbiz.pbn`, conforming to plain text)
+and claims it as a viewer, so PBN files can be picked here, opened from Files,
+and sent to the app from the share sheet.
+
+Other bridge apps export their own type for `.pbn` (Shark Bridge Game's is
+`com.emabridge.bridgedeal`), and which one the system honours is undocumented.
+So the app also claims the `.pbn` extension directly, which keeps it under
+Open With whoever wins, and its file picker accepts every type `.pbn` maps to.
+Which app opens a `.pbn` on double-click is the user's choice (Get Info ▸ Open
+with ▸ Change All on the Mac), not something the app can set.
 
 ## Licence
 
