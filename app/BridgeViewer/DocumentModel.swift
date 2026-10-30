@@ -155,6 +155,27 @@ final class DocumentModel {
         renderPreviews()
     }
 
+    /// Back to the empty window. Bumping the generations drops any render
+    /// still in flight for the closed file.
+    func close() {
+        generation += 1
+        previewGeneration += 1
+        endSearch()
+        shareURL.map(Self.discard)
+        file = nil
+        pdf = nil
+        pdfData = nil
+        figures = []
+        thumbnails = nil
+        shareURL = nil
+        previews = [:]
+        error = nil
+        isRendering = false
+        isShowingBoards = false
+        viewMode = .pages
+        currentPage = 0
+    }
+
     /// `keepPage`: the change doesn't move content between pages (circling
     /// options), so stay where the reader is rather than going back to page 1.
     private func render(keepPage: Bool) {

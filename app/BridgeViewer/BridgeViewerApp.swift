@@ -42,7 +42,17 @@ private struct MenuCommands: Commands {
             Button("Open…") { model.isImporting = true }
                 .keyboardShortcut("o")
         }
+        // Close lives in this group too, so replacing it drops ⌘W unless it
+        // is put back. Close the file first, then the window.
         CommandGroup(replacing: .saveItem) {
+            Button("Close") {
+                if model.file != nil {
+                    model.close()
+                } else {
+                    NSApp.keyWindow?.performClose(nil)
+                }
+            }
+            .keyboardShortcut("w")
             Button("Save PDF…") { model.isExporting = true }
                 .keyboardShortcut("s")
                 .disabled(model.pdfData == nil)
