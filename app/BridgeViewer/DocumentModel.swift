@@ -64,6 +64,28 @@ final class DocumentModel {
     private(set) var pageRequest: PageRequest?
     private(set) var thumbnails: ThumbnailLoader?
 
+    /// The view showing `pdf`, for the menu commands PDFView already
+    /// implements: zoom, page stepping, the selection. Not observed; the
+    /// commands only reach through it.
+    @ObservationIgnored weak var pdfView: PDFView?
+    /// True when the page view is up (not the grid), so page and zoom
+    /// commands have something to act on.
+    var canNavigate: Bool { pdf != nil && viewMode == .pages }
+
+    func zoomIn() { pdfView?.zoomIn(nil) }
+    func zoomOut() { pdfView?.zoomOut(nil) }
+    func actualSize() { pdfView?.scaleFactor = 1 }
+    /// Back to fit-to-width, refitting as the window resizes (setting
+    /// `scaleFactor` turns `autoScales` off; toggling it refits now).
+    func zoomToFit() {
+        pdfView?.autoScales = false
+        pdfView?.autoScales = true
+    }
+    func nextPage() { pdfView?.goToNextPage(nil) }
+    func previousPage() { pdfView?.goToPreviousPage(nil) }
+    func firstPage() { pdfView?.goToFirstPage(nil) }
+    func lastPage() { pdfView?.goToLastPage(nil) }
+
     /// Leave the grid for `index`.
     func show(page index: Int) {
         pageRequest = PageRequest(index: index)
@@ -80,6 +102,15 @@ final class DocumentModel {
     // MARK: Search
 
     var isSearching = false
+    /// Bumped by `beginSearch`; the search field takes the keyboard on each
+    /// change, including when it is already open.
+    private(set) var searchFocusRequest = 0
+
+    /// Open the search field (or return to it) ready to type: ⌘F.
+    func beginSearch() {
+        isSearching = true
+        searchFocusRequest += 1
+    }
     var searchText = "" { didSet { if searchText != oldValue { scheduleSearch() } } }
     private var searchTask: Task<Void, Never>?
     /// Every match in the document, in reading order. PDFView highlights them
@@ -88,9 +119,26 @@ final class DocumentModel {
     private(set) var searchIndex = 0
     /// Bumped on every new result set or move, so PDFView acts on each one.
     private(set) var searchGeneration = 0
+    /// Matches per page (0-based), for the grid's badges. Search leaves the
+    /// view as it is: in the grid, the badges show where the matches are,
+    /// and next/previous moves through them there.
+    private(set) var matchCounts: [Int: Int] = [:]
+    /// The page of the match being shown.
+    var matchPage: Int? {
+        searchResults.indices.contains(searchIndex) ? page(of: searchResults[searchIndex]) : nil
+    }
 
     func nextMatch() { step(by: 1) }
     func previousMatch() { step(by: -1) }
+
+    /// Find the text selected in the PDF (⌘E).
+    func useSelectionForFind() {
+        guard let text = pdfView?.currentSelection?.string?
+            .trimmingCharacters(in: .whitespacesAndNewlines), !text.isEmpty
+        else { return }
+        beginSearch()
+        searchText = text
+    }
 
     func endSearch() {
         isSearching = false
@@ -101,7 +149,6 @@ final class DocumentModel {
         guard !searchResults.isEmpty else { return }
         searchIndex = (searchIndex + delta + searchResults.count) % searchResults.count
         searchGeneration += 1
-        viewMode = .pages
     }
 
     /// Search once typing pauses: a long lesson is a lot of text to scan per
@@ -126,8 +173,16 @@ final class DocumentModel {
         searchIndex = searchResults.firstIndex { selection in
             selection.pages.first.flatMap { pdf?.index(for: $0) }.map { $0 >= currentPage } ?? false
         } ?? 0
+        var counts: [Int: Int] = [:]
+        for match in searchResults {
+            if let page = page(of: match) { counts[page, default: 0] += 1 }
+        }
+        matchCounts = counts
         searchGeneration += 1
-        if !searchResults.isEmpty { viewMode = .pages }
+    }
+
+    private func page(of match: PDFSelection) -> Int? {
+        match.pages.first.flatMap { pdf?.index(for: $0) }
     }
 
     // MARK: Menu and toolbar requests (the Mac menu bar reaches them here)
@@ -204,7 +259,9 @@ final class DocumentModel {
                 case .success(let rendered):
                     let data = rendered.pdf
                     let page = keepPage ? self.currentPage : 0
-                    self.pdf = PDFDocument(data: data)
+                    let pdf = PDFDocument(data: data)
+                    pdf?.removeLessonBlockLinks()
+                    self.pdf = pdf
                     self.pdfData = data
                     self.figures = rendered.figures
                     self.thumbnails = ThumbnailLoader(data: data)
@@ -278,7 +335,7 @@ final class DocumentModel {
         }
         if let query = value(after: "-Search") {
             try? await Task.sleep(for: .seconds(1))
-            isSearching = true
+            beginSearch()
             searchText = query
         }
         // Re-render with the search field focused: the case that once hung
@@ -332,6 +389,22 @@ private enum Saved {
             defaults.set(newValue.circleSureWinners, forKey: "circleSureWinners")
             defaults.set(newValue.circlePromotableWinners, forKey: "circlePromotableWinners")
             defaults.set(newValue.circleLengthWinners, forKey: "circleLengthWinners")
+        }
+    }
+}
+
+private extension PDFDocument {
+    /// Drop the boards' `lesson-block:` links (Contract 5) from the copy on
+    /// screen. They cover each board -- on the analysis layout the whole
+    /// page -- and PDFView treats a press on a link as a click: it flashes
+    /// the link and never starts a text selection. Saved and shared
+    /// bytes come from `pdfData` and keep them.
+    func removeLessonBlockLinks() {
+        for index in 0..<pageCount {
+            guard let page = page(at: index) else { continue }
+            for annotation in page.annotations where annotation.url?.scheme == "lesson-block" {
+                page.removeAnnotation(annotation)
+            }
         }
     }
 }

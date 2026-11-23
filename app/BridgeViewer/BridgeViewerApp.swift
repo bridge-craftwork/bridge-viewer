@@ -12,7 +12,10 @@ struct BridgeViewerApp: App {
             .defaultSize(width: 1100, height: 900)
             .commands { MenuCommands(model: model) }
         #else
+        // On the iPad the same commands fill the menu bar and the ⌘-hold
+        // shortcut list.
         WindowGroup { root }
+            .commands { MenuCommands(model: model) }
         #endif
     }
 
@@ -30,54 +33,3 @@ struct BridgeViewerApp: App {
             #endif
     }
 }
-
-#if os(macOS)
-/// File ▸ Open, Save PDF and Print, and View ▸ the page grid and the board
-/// index.
-private struct MenuCommands: Commands {
-    let model: DocumentModel
-
-    var body: some Commands {
-        CommandGroup(replacing: .newItem) {
-            Button("Open…") { model.isImporting = true }
-                .keyboardShortcut("o")
-        }
-        // Close lives in this group too, so replacing it drops ⌘W unless it
-        // is put back. Close the file first, then the window.
-        CommandGroup(replacing: .saveItem) {
-            Button("Close") {
-                if model.file != nil {
-                    model.close()
-                } else {
-                    NSApp.keyWindow?.performClose(nil)
-                }
-            }
-            .keyboardShortcut("w")
-            Button("Save PDF…") { model.isExporting = true }
-                .keyboardShortcut("s")
-                .disabled(model.pdfData == nil)
-        }
-        CommandGroup(replacing: .printItem) {
-            Button("Print…") { model.pdf?.printWithPanel() }
-                .keyboardShortcut("p")
-                .disabled(model.pdf == nil)
-        }
-        CommandGroup(after: .textEditing) {
-            Button("Find…") { model.isSearching = true }
-                .keyboardShortcut("f")
-                .disabled(model.pdf == nil)
-        }
-        CommandGroup(before: .toolbar) {
-            Button(model.viewMode == .grid ? "Show Pages" : "Show Page Grid") {
-                model.viewMode = model.viewMode == .grid ? .pages : .grid
-            }
-            .keyboardShortcut("g", modifiers: [.command, .option])
-            .disabled(model.pdf == nil)
-            Button("Go to Board…") { model.isShowingBoards = true }
-                .keyboardShortcut("b", modifiers: [.command, .option])
-                .disabled(model.boards.isEmpty)
-            Divider()
-        }
-    }
-}
-#endif

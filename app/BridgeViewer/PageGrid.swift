@@ -29,7 +29,9 @@ struct PageGrid: View {
                         Button { model.show(page: index) } label: {
                             PageThumbnail(
                                 loader: loader, index: index, width: liveWidth,
-                                current: index == model.currentPage
+                                current: index == model.currentPage,
+                                matches: model.matchCounts[index] ?? 0,
+                                currentMatch: index == model.matchPage
                             )
                         }
                         .buttonStyle(.plain)
@@ -39,6 +41,12 @@ struct PageGrid: View {
                 .padding()
             }
             .onAppear { proxy.scrollTo(model.currentPage, anchor: .center) }
+            // Next/previous match while in the grid: bring its page into view.
+            .onChange(of: model.searchGeneration) {
+                if let page = model.matchPage {
+                    withAnimation { proxy.scrollTo(page, anchor: .center) }
+                }
+            }
         }
         .background(.background.secondary)
         .simultaneousGesture(
@@ -62,6 +70,9 @@ private struct PageThumbnail: View {
     let index: Int
     let width: CGFloat
     let current: Bool
+    /// Search matches on this page, and whether the one being shown is here.
+    var matches = 0
+    var currentMatch = false
 
     @Environment(\.displayScale) private var scale
     @State private var image: CGImage?
@@ -82,6 +93,21 @@ private struct PageThumbnail: View {
             .overlay {
                 if current {
                     Rectangle().strokeBorder(Color.accentColor, lineWidth: 3)
+                }
+            }
+            .overlay(alignment: .topTrailing) {
+                if matches > 0 {
+                    Text("\(matches)")
+                        .font(.caption.weight(.semibold).monospacedDigit())
+                        .foregroundStyle(.black)
+                        .padding(.horizontal, 7)
+                        .padding(.vertical, 2)
+                        .background(Color.yellow.opacity(currentMatch ? 1 : 0.6), in: .capsule)
+                        .overlay {
+                            if currentMatch { Capsule().strokeBorder(.orange, lineWidth: 2) }
+                        }
+                        .padding(4)
+                        .accessibilityLabel(matches == 1 ? "1 match" : "\(matches) matches")
                 }
             }
             Text("\(index + 1)")
