@@ -22,6 +22,23 @@ extension Image {
     }
 }
 
+extension DocumentModel {
+    /// The system print panel for the rendered PDF.
+    func printPDF() {
+        #if os(macOS)
+        pdf?.printWithPanel()
+        #else
+        guard let pdfData else { return }
+        let controller = UIPrintInteractionController.shared
+        let info = UIPrintInfo.printInfo()
+        info.jobName = suggestedFileName
+        controller.printInfo = info
+        controller.printingItem = pdfData
+        controller.present(animated: true)
+        #endif
+    }
+}
+
 #if os(macOS)
 import AppKit
 

@@ -15,14 +15,21 @@ The layout bar stays collapsed to one row showing the current layout --
 most people use one nearly always, and it (and the circling choices) is
 remembered between launches. Tap it for the strip of every layout. Search
 sits beside it: matches are highlighted, with a count and previous/next (⌘F,
-⌘G and ⇧⌘G on the Mac).
+⌘G, ⇧⌘G, and ⌘E to find the selected text). In the page grid, each page shows how many
+matches it has, and previous/next move through them without leaving the grid.
 
 For long documents there is a page counter, and a page grid: pinch out past
 fit-to-width (or use the Pages/Grid toggle, or View ▸ Show Page Grid on the
 Mac), pinch within the grid to change its size, tap a page to read it.
 
-The Boards button (View ▸ Go to Board…, ⌥⌘B on the Mac) lists every board with
+The Boards button (Go ▸ Go to Board…, ⌥⌘B) lists every board with
 its page. Choose one to go straight to it.
+
+With a keyboard (the Mac, or an iPad's menu bar and ⌘-hold list) there are
+the usual menu commands: Open, Close (⌘W), Save PDF (⌘S), Print (⌘P); Copy and
+Select All on text selected in the page (drag across it on the Mac); zoom
+(⌘0 actual size, ⌘9 fit, ⌘= and ⌘-); and a Go menu for the previous and next
+page (⌥⌘↑ ⌥⌘↓, with ⇧ for the first and last).
 
 Every PDF the app saves, prints or shares carries its own source: the `.pbn`,
 the boards, and where each one sits on the page (Contract 5, the format

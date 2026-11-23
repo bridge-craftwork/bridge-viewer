@@ -162,7 +162,8 @@ private struct DocumentView: View {
                     request: model.pageRequest,
                     search: (model.searchResults, model.searchIndex, model.searchGeneration),
                     onPageChange: { model.currentPage = $0 },
-                    onPinchOut: { withAnimation(.easeInOut(duration: 0.2)) { model.viewMode = .grid } }
+                    onPinchOut: { withAnimation(.easeInOut(duration: 0.2)) { model.viewMode = .grid } },
+                    onCreate: { model.pdfView = $0 }
                 )
                 if model.viewMode == .grid, let loader = model.thumbnails {
                     PageGrid(loader: loader)
@@ -386,10 +387,8 @@ private struct SearchControl: View {
                 }
                 Button("Previous", systemImage: "chevron.up", action: model.previousMatch)
                     .disabled(model.searchResults.isEmpty)
-                    .keyboardShortcut("g", modifiers: [.command, .shift])
                 Button("Next", systemImage: "chevron.down", action: model.nextMatch)
                     .disabled(model.searchResults.isEmpty)
-                    .keyboardShortcut("g", modifiers: .command)
                 Button("Done", systemImage: "xmark.circle.fill", action: model.endSearch)
                     .foregroundStyle(.secondary)
             }
@@ -399,9 +398,15 @@ private struct SearchControl: View {
             .padding(.vertical, 5)
             .background(.fill.tertiary, in: .capsule)
             .fixedSize()
-            .onAppear { focused = true }
+            // Focus once the field is in the window: set during onAppear
+            // itself, the request can land before there is a field to take
+            // it, and the PDF keeps the keyboard.
+            .task(id: model.searchFocusRequest) {
+                await Task.yield()
+                focused = true
+            }
         } else {
-            Button("Search", systemImage: "magnifyingglass") { model.isSearching = true }
+            Button("Search", systemImage: "magnifyingglass") { model.beginSearch() }
                 .labelStyle(.iconOnly)
                 .buttonStyle(.borderless)
                 .help("Find text in the PDF")

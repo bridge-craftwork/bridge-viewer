@@ -15,6 +15,8 @@ struct PDFKitView {
     let search: (results: [PDFSelection], index: Int, generation: Int)
     let onPageChange: (Int) -> Void
     let onPinchOut: () -> Void
+    /// Handed the view once it exists, for the menu commands.
+    var onCreate: (PDFView) -> Void = { _ in }
 
     final class Coordinator: NSObject {
         var parent: PDFKitView
@@ -55,6 +57,7 @@ struct PDFKitView {
         view.displayMode = .singlePageContinuous
         view.displaysPageBreaks = true
         view.delegate = coordinator
+        onCreate(view)
         NotificationCenter.default.addObserver(
             coordinator, selector: #selector(Coordinator.pageChanged(_:)),
             name: .PDFViewPageChanged, object: view)
@@ -124,6 +127,20 @@ private final class PinchablePDFView: PDFView {
     weak var coordinator: PDFKitView.Coordinator?
     private var total: CGFloat = 0
 
+    /// Take the keyboard when the window has nothing else focused, so the
+    /// arrow keys, Select All and Copy reach the page before a first click.
+    /// Never from a field that has it (the search box).
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        guard let window else { return }
+        DispatchQueue.main.async { [weak self] in
+            guard let self, self.window === window,
+                  window.firstResponder == nil || window.firstResponder === window
+            else { return }
+            window.makeFirstResponder(self)
+        }
+    }
+
     override func magnify(with event: NSEvent) {
         let wasAtFit = coordinator?.atFit(self) ?? false
         super.magnify(with: event)
@@ -172,9 +189,10 @@ extension PDFKitView.Coordinator: UIGestureRecognizerDelegate {
 
 extension PDFKitView.Coordinator: PDFViewDelegate {
     /// Each board carries a `lesson-block:` link (Contract 5) for presenters
-    /// such as lesson-stage. Here a click on one is just a click on the page:
-    /// left alone, PDFView would try to open the URL. Any other link opens
-    /// as usual.
+    /// such as lesson-stage. The model strips them from the document shown,
+    /// so text can be selected across a board; should one get through, a
+    /// click on it is just a click on the page rather than a URL to open.
+    /// Any other link opens as usual.
     func pdfViewWillClick(onLink sender: PDFView, with url: URL) {
         guard url.scheme != "lesson-block" else { return }
         #if os(macOS)

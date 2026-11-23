@@ -65,8 +65,10 @@ version 2), which pbn-to-pdf embeds:
 - **Saved and shared PDFs carry the payload,** so they open in lesson-stage
   with tappable boards.
 - **The `lesson-block:` links are for presenters, not for this app.**
-  `PDFKitView`'s delegate swallows clicks on them, because PDFView would
-  otherwise try to open the URL. Other links still open.
+  The document on screen has them stripped (`removeLessonBlockLinks`): each
+  covers a whole board, on Analysis the whole page, and PDFView takes a press
+  on a link as a click, flashing it and never starting a text selection.
+  `pdfData` keeps them for Save and Share. Other links still open.
 
 The plan this came from is `../lesson-stage/docs/contract-5-shared-plan.md`.
 
