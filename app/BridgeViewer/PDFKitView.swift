@@ -257,12 +257,15 @@ extension PDFKitView.Coordinator: PDFViewDelegate {
 /// once they stop. An animated resize sends many; the first one's place is
 /// the reader's, and it is restored after the last, when PDFView has refit.
 private final class PlaceKeeper {
-    private var held: PDFDestination?
+    /// The page and the point at the view's top-left. Not the destination
+    /// PDFView hands out: that carries the old zoom, and going to it put the
+    /// page back at its old size instead of refitting it to the new width.
+    private var held: (page: PDFPage, point: CGPoint, fitting: Bool)?
     private var pending: DispatchWorkItem?
 
     func hold(_ view: PDFView) {
-        guard held == nil, view.document != nil else { return }
-        held = view.currentDestination
+        guard held == nil, let place = view.currentDestination, let page = place.page else { return }
+        held = (page, place.point, view.autoScales)
     }
 
     func restoreSoon(_ view: PDFView) {
@@ -270,7 +273,13 @@ private final class PlaceKeeper {
         let work = DispatchWorkItem { [weak self, weak view] in
             guard let self, let view, let place = self.held else { return }
             self.held = nil
-            if place.page?.document === view.document { view.go(to: place) }
+            guard place.page.document === view.document else { return }
+            if place.fitting {
+                // Refit to the new width before going back
+                view.autoScales = false
+                view.autoScales = true
+            }
+            view.go(to: PDFDestination(page: place.page, at: place.point))
         }
         pending = work
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.08, execute: work)
