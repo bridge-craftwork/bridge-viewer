@@ -182,6 +182,30 @@ pub unsafe extern "C" fn ptp_board_count(pbn: *const c_char) -> i64 {
     .unwrap_or(-1)
 }
 
+/// A LIN file as PBN text: each record as the board Bridge Composer opens
+/// it as (`bridge_encodings::lin::LinData::to_board`), written as PBN. The
+/// app renders LIN through this, and saves the result as the file's PBN.
+///
+/// # Safety
+/// `lin` must be valid NUL-terminated UTF-8. `out_pbn` and `out_error` must
+/// be writable; whichever is set must be freed by the caller.
+#[no_mangle]
+pub unsafe extern "C" fn ptp_lin_to_pbn(
+    lin: *const c_char,
+    out_pbn: *mut PtpBuffer,
+    out_error: *mut *mut c_char,
+) -> i32 {
+    boundary(out_pbn, out_error, || {
+        let lin = str_arg(lin)?;
+        let records = bridge_encodings::lin::parse_lin_file(lin).map_err(|e| e.to_string())?;
+        let boards: Vec<_> = records.iter().map(|r| r.to_board()).collect();
+        if boards.is_empty() {
+            return Err("no boards in the LIN".into());
+        }
+        Ok(bridge_encodings::pbn::write_pbn(&boards).into_bytes())
+    })
+}
+
 /// # Safety
 /// `buffer` must have come from this library, and be freed only once.
 #[no_mangle]

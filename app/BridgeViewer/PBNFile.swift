@@ -6,21 +6,27 @@ extension UTType {
     /// Declared in Info.plist; keep the identifier in step.
     static let pbn = UTType(exportedAs: "com.popperbiz.pbn", conformingTo: .plainText)
 
-    /// What the file picker accepts. Another app may export its own type for
+    /// What the file picker accepts: PBN and LIN. Another app may export its own type for
     /// .pbn and win -- on a Mac with Shark Bridge installed, .pbn files can be
     /// com.emabridge.bridgedeal, which doesn't even conform to text -- so also
     /// take whatever the system maps .pbn to.
     static let pbnFiles: [UTType] = {
-        var types: [UTType] = [.pbn]
-        for type in UTType.types(tag: "pbn", tagClass: .filenameExtension, conformingTo: nil)
-        where !types.contains(type) {
-            types.append(type)
+        var types: [UTType] = [.pbn, .lin]
+        for ext in ["pbn", "lin"] {
+            for type in UTType.types(tag: ext, tagClass: .filenameExtension, conformingTo: nil)
+            where !types.contains(type) {
+                types.append(type)
+            }
         }
         return types + [.plainText]
     }()
+
+    /// BBO's LIN, declared in Info.plist like .pbn; keep the identifier in step.
+    static let lin = UTType(exportedAs: "com.popperbiz.lin", conformingTo: .plainText)
 }
 
-/// A PBN file, read into memory.
+/// A PBN file, read into memory. A LIN file arrives here already turned
+/// into PBN.
 struct PBNFile: Equatable {
     var name: String
     var text: String
@@ -40,7 +46,7 @@ struct PBNFile: Equatable {
         var errorDescription: String? {
             switch self {
             case .unreadable(let name): "Couldn't read \(name)."
-            case .notPBN(let name): "\(name) has no boards in it. Is it a PBN file?"
+            case .notPBN(let name): "\(name) has no boards in it. Is it a PBN or LIN file?"
             }
         }
     }
@@ -61,8 +67,16 @@ struct PBNFile: Equatable {
         guard let text = String(data: data, encoding: .utf8)
             ?? String(data: data, encoding: .windowsCP1252)
         else { throw ReadError.unreadable(name) }
-        guard let count = Renderer.boardCount(text), count > 0 else { throw ReadError.notPBN(name) }
-        return PBNFile(name: name, text: text, boardCount: count)
+        // LIN is read into PBN, the way Bridge Composer opens it, and from
+        // then on the file is PBN to the rest of the app.
+        let pbn: String
+        if (name as NSString).pathExtension.lowercased() == "lin" {
+            do { pbn = try Renderer.pbn(fromLIN: text) } catch { throw ReadError.notPBN(name) }
+        } else {
+            pbn = text
+        }
+        guard let count = Renderer.boardCount(pbn), count > 0 else { throw ReadError.notPBN(name) }
+        return PBNFile(name: name, text: pbn, boardCount: count)
     }
 
     static func sample() -> PBNFile? {

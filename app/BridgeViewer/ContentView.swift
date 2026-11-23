@@ -124,7 +124,7 @@ private struct EmptyState: View {
 
     var body: some View {
         ContentUnavailableView {
-            Label("Open a PBN file", systemImage: "doc.text")
+            Label("Open a PBN or LIN file", systemImage: "doc.text")
         } description: {
             Text("Choose a layout and get a printable PDF: declarer's plans, bidding sheets, hand records and more.")
         } actions: {

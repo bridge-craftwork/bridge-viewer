@@ -3,7 +3,7 @@
 An iPhone, iPad and Mac app for bridge teaching material.
 
 A native SwiftUI app over [pbn-to-pdf](https://github.com/bridge-craftwork/pbn-to-pdf):
-open a PBN file, pick a layout, and get a printable PDF — declarer's plans,
+open a PBN or LIN file, pick a layout, and get a printable PDF — declarer's plans,
 bidding sheets, dealer summaries, analysis, hand records.
 
 The renderer is the same Rust crate the CLI and the web app use, compiled as a
@@ -91,6 +91,15 @@ So the app also claims the `.pbn` extension directly, which keeps it under
 Open With whoever wins, and its file picker accepts every type `.pbn` maps to.
 Which app opens a `.pbn` on double-click is the user's choice (Get Info ▸ Open
 with ▸ Change All on the Mac), not something the app can set.
+
+## Opening .lin files
+
+LIN, Bridge Base Online's hand records, opens the same way. The Rust side reads
+it into PBN (`ptp_lin_to_pbn`, over bridge-encodings' `LinData::to_board`), the
+way Bridge Composer opens LIN, and from then on the file is PBN to the app.
+`Info.plist` exports `com.popperbiz.lin` and claims the `.lin` extension, as
+for `.pbn`, but as the **owner** (`LSHandlerRank Owner`): BBO declares no type
+for it, so this app is offered first.
 
 ## Licence
 

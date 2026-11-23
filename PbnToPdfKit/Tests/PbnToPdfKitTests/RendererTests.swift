@@ -80,3 +80,24 @@ private func fixture() throws -> String {
         try Renderer.render("hello", layout: PageLayout.all[0])
     }
 }
+
+@Test func linReadsIntoPBN() throws {
+    // Two BBO records, one per line: an auction and play with a claim, and
+    // an auction alone.
+    let lin = """
+    pn|Sue South,West,Ned North,Ed East|md|3S962HAJ7DKT82CJ75,ST5HQ9863DA943CKQ,SK843HT542DJ6C863|sv|n|ah|Board 7|mb|p|mb|1C!|an|5+ clubs|mb|p|mb|1H|mb|p|mb|1N|mb|p|mb|3N|mb|p|mb|p|mb|p|pc|D2|pc|D3|pc|DJ|pc|DQ|mc|9|
+    pn|,,,|md|1S962HAJ7DKT82CJ75,ST5HQ9863DA943CKQ,SK843HT542DJ6C863|sv|o|ah|Board 8|mb|2N|mb|p|
+    """
+    let pbn = try Renderer.pbn(fromLIN: lin)
+    #expect(Renderer.boardCount(pbn) == 2)
+    #expect(pbn.contains("[Board \"7\"]"))
+    #expect(pbn.contains("[Contract \"3NT\"]"))
+    #expect(pbn.contains("[Result \"9\"]"))
+    #expect(pbn.contains("[South \"Sue South\"]"))
+    // and it renders
+    _ = try Renderer.render(pbn, layout: PageLayout.all[0])
+}
+
+@Test func notALINIsAnError() {
+    #expect(throws: RenderError.self) { try Renderer.pbn(fromLIN: "") }
+}
