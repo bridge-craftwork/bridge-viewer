@@ -136,6 +136,17 @@ extension PDFKitView: NSViewRepresentable {
 private final class PinchablePDFView: PDFView {
     weak var coordinator: PDFKitView.Coordinator?
     private var total: CGFloat = 0
+    private let place = PlaceKeeper()
+
+    /// Keep the reader's place when the width changes (View Source opening
+    /// or closing): the refit to the new width otherwise leaves the scroll
+    /// offset where it was, on a page now drawn larger or smaller.
+    override func setFrameSize(_ newSize: NSSize) {
+        let widthChanges = newSize.width != frame.width
+        if widthChanges { place.hold(self) }
+        super.setFrameSize(newSize)
+        if widthChanges { place.restoreSoon(self) }
+    }
 
     /// Take the keyboard when the window has nothing else focused, so the
     /// arrow keys, Select All and Copy reach the page before a first click.
@@ -178,7 +189,7 @@ private final class PinchablePDFView: PDFView {
 #else
 extension PDFKitView: UIViewRepresentable {
     func makeUIView(context: Context) -> PDFView {
-        let view = PDFView()
+        let view = PlaceKeepingPDFView()
         view.backgroundColor = .secondarySystemBackground
         configure(view, context.coordinator)
         let pinch = UIPinchGestureRecognizer(
@@ -195,6 +206,16 @@ extension PDFKitView: UIViewRepresentable {
     }
 
     func updateUIView(_ view: PDFView, context: Context) { update(view, context.coordinator) }
+}
+
+/// Keeps the reader's place when the width changes, as on the Mac.
+private final class PlaceKeepingPDFView: PDFView {
+    private let place = PlaceKeeper()
+
+    override var frame: CGRect {
+        willSet { if newValue.width != frame.width { place.hold(self) } }
+        didSet { if frame.width != oldValue.width { place.restoreSoon(self) } }
+    }
 }
 
 extension PDFKitView.Coordinator: UIGestureRecognizerDelegate {
@@ -229,5 +250,29 @@ extension PDFKitView.Coordinator: PDFViewDelegate {
         #else
         UIApplication.shared.open(url)
         #endif
+    }
+}
+
+/// The place a PDFView was showing before a run of size changes, put back
+/// once they stop. An animated resize sends many; the first one's place is
+/// the reader's, and it is restored after the last, when PDFView has refit.
+private final class PlaceKeeper {
+    private var held: PDFDestination?
+    private var pending: DispatchWorkItem?
+
+    func hold(_ view: PDFView) {
+        guard held == nil, view.document != nil else { return }
+        held = view.currentDestination
+    }
+
+    func restoreSoon(_ view: PDFView) {
+        pending?.cancel()
+        let work = DispatchWorkItem { [weak self, weak view] in
+            guard let self, let view, let place = self.held else { return }
+            self.held = nil
+            if place.page?.document === view.document { view.go(to: place) }
+        }
+        pending = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.08, execute: work)
     }
 }
