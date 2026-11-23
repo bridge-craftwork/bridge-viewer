@@ -319,6 +319,7 @@ private struct LayoutBar: View {
                     layoutButton
                     SearchControl()
                     Spacer(minLength: 0)
+                    if model.offersPlayRecords { PlayRecordToggle(options: $model.options) }
                     if model.layout.usesCardArt { CirclingToggles(options: $model.options) }
                 }
             }
@@ -417,6 +418,20 @@ private struct SearchControl: View {
         model.searchResults.isEmpty
             ? "Not found"
             : "\(model.searchIndex + 1) of \(model.searchResults.count)"
+    }
+}
+
+/// Every board's trick-by-trick play, not only the boards whose `BCFlags`
+/// ask for it. Exports that record each table's play (Brill's) carry none.
+private struct PlayRecordToggle: View {
+    @Binding var options: RenderOptions
+
+    var body: some View {
+        Toggle("Play", isOn: $options.allPlayRecords)
+            .toggleStyle(.button)
+            .font(.subheadline)
+            .fixedSize()
+            .help("Show each board's play, trick by trick")
     }
 }
 
