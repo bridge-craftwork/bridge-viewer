@@ -17,6 +17,8 @@ struct PDFKitView {
     let onPinchOut: () -> Void
     /// Handed the view once it exists, for the menu commands.
     var onCreate: (PDFView) -> Void = { _ in }
+    /// A click or tap on a page: its index, and the point in page space.
+    var onClick: (Int, CGPoint) -> Void = { _, _ in }
 
     final class Coordinator: NSObject {
         var parent: PDFKitView
@@ -33,6 +35,14 @@ struct PDFKitView {
                   let index = view.document?.index(for: page)
             else { return }
             parent.onPageChange(index)
+        }
+
+        /// Report a click at `point`, in the view's own coordinates.
+        func clicked(_ view: PDFView, at point: CGPoint) {
+            guard let page = view.page(for: point, nearest: false),
+                  let index = view.document?.index(for: page)
+            else { return }
+            parent.onClick(index, view.convert(point, to: page))
         }
 
         /// True when the view is zoomed out as far as PDFView goes.
@@ -141,6 +151,14 @@ private final class PinchablePDFView: PDFView {
         }
     }
 
+    /// Watched after `super`, which runs PDFView's own tracking (selection,
+    /// links) to the mouse-up, so the click still does all it did.
+    override func mouseDown(with event: NSEvent) {
+        let point = convert(event.locationInWindow, from: nil)
+        super.mouseDown(with: event)
+        if event.clickCount == 1 { coordinator?.clicked(self, at: point) }
+    }
+
     override func magnify(with event: NSEvent) {
         let wasAtFit = coordinator?.atFit(self) ?? false
         super.magnify(with: event)
@@ -167,6 +185,12 @@ extension PDFKitView: UIViewRepresentable {
             target: context.coordinator, action: #selector(Coordinator.pinch(_:)))
         pinch.delegate = context.coordinator
         view.addGestureRecognizer(pinch)
+        // Taps are watched, not taken, like the pinch
+        let tap = UITapGestureRecognizer(
+            target: context.coordinator, action: #selector(Coordinator.tap(_:)))
+        tap.cancelsTouchesInView = false
+        tap.delegate = context.coordinator
+        view.addGestureRecognizer(tap)
         return view
     }
 
@@ -178,6 +202,11 @@ extension PDFKitView.Coordinator: UIGestureRecognizerDelegate {
     func gestureRecognizer(
         _ g: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith other: UIGestureRecognizer
     ) -> Bool { true }
+
+    @objc func tap(_ g: UITapGestureRecognizer) {
+        guard let view = g.view as? PDFView else { return }
+        clicked(view, at: g.location(in: view))
+    }
 
     @objc func pinch(_ g: UIPinchGestureRecognizer) {
         guard let view = g.view as? PDFView else { return }

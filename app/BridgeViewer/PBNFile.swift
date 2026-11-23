@@ -29,8 +29,15 @@ extension UTType {
 /// into PBN.
 struct PBNFile: Equatable {
     var name: String
+    /// The PBN the app renders: the file itself, or a LIN file read into PBN.
     var text: String
     var boardCount: Int
+    /// The file as it was opened, for View Source.
+    var source: String
+    var isLIN: Bool
+    /// Where each board's record sits in `source`, in UTF-16 (`NSString`)
+    /// units: entry `i` is board `i` of `text`, and of the click map.
+    var sourceRecords: [NSRange]
 
     /// The name without its extension, for naming the PDF.
     var stem: String { (name as NSString).deletingPathExtension }
@@ -69,14 +76,29 @@ struct PBNFile: Equatable {
         else { throw ReadError.unreadable(name) }
         // LIN is read into PBN, the way Bridge Composer opens it, and from
         // then on the file is PBN to the rest of the app.
+        let isLIN = (name as NSString).pathExtension.lowercased() == "lin"
         let pbn: String
-        if (name as NSString).pathExtension.lowercased() == "lin" {
+        if isLIN {
             do { pbn = try Renderer.pbn(fromLIN: text) } catch { throw ReadError.notPBN(name) }
         } else {
             pbn = text
         }
         guard let count = Renderer.boardCount(pbn), count > 0 else { throw ReadError.notPBN(name) }
-        return PBNFile(name: name, text: pbn, boardCount: count)
+        return PBNFile(
+            name: name, text: pbn, boardCount: count,
+            source: text, isLIN: isLIN, sourceRecords: records(in: text, lin: isLIN)
+        )
+    }
+
+    /// The renderer's byte ranges as ranges a text view can use.
+    private static func records(in text: String, lin: Bool) -> [NSRange] {
+        let utf8 = text.utf8
+        return Renderer.sourceRecords(text, lin: lin).compactMap { bytes in
+            guard let start = utf8.index(utf8.startIndex, offsetBy: bytes.lowerBound, limitedBy: utf8.endIndex),
+                  let end = utf8.index(utf8.startIndex, offsetBy: bytes.upperBound, limitedBy: utf8.endIndex)
+            else { return nil }
+            return NSRange(start..<end, in: text)
+        }
     }
 
     static func sample() -> PBNFile? {

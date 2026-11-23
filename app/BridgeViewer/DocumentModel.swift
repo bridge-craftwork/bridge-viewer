@@ -101,6 +101,34 @@ final class DocumentModel {
         pageRequest = PageRequest(index: figure.page, rect: figure.rect)
         viewMode = .pages
         isShowingBoards = false
+        sourceRecord = figure.board - 1
+    }
+
+    // MARK: View Source
+
+    /// The file as opened, beside the PDF, with the board in view highlighted.
+    var isShowingSource = false
+    /// The board's record highlighted in the source: an index into
+    /// `file.sourceRecords`, which is the board's index in the PDF (the click
+    /// map's `board`, less one).
+    private(set) var sourceRecord: Int?
+
+    /// A click in the source: go to that board in the PDF.
+    func selectSourceRecord(_ index: Int) {
+        sourceRecord = index
+        if let figure = figures.first(where: { $0.board == index + 1 }) {
+            pageRequest = PageRequest(index: figure.page, rect: figure.rect)
+            viewMode = .pages
+        }
+    }
+
+    /// A click on the PDF: highlight the board drawn there, if any. `point`
+    /// is in page space, as the figures are.
+    func pdfClicked(page: Int, at point: CGPoint) {
+        guard isShowingSource,
+              let figure = figures.first(where: { $0.page == page && $0.rect.contains(point) })
+        else { return }
+        sourceRecord = figure.board - 1
     }
 
     // MARK: Search
@@ -207,6 +235,7 @@ final class DocumentModel {
 
     func load(_ file: PBNFile) {
         error = nil
+        sourceRecord = nil
         self.file = file
         previews = [:]
         viewMode = .pages
@@ -233,6 +262,7 @@ final class DocumentModel {
         isShowingBoards = false
         viewMode = .pages
         currentPage = 0
+        sourceRecord = nil
     }
 
     /// `keepPage`: the change doesn't move content between pages (circling

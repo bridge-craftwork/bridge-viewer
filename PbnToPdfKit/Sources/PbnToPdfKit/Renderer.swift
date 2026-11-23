@@ -137,6 +137,15 @@ public enum Renderer {
         return text
     }
 
+    /// Where each board's record sits in a source file, as UTF-8 byte
+    /// ranges: record `i` is board `i` of the PBN the file renders as (for a
+    /// LIN source, the PBN `pbn(fromLIN:)` makes). Empty if it won't read.
+    public static func sourceRecords(_ text: String, lin: Bool) -> [Range<Int>] {
+        let json = takeString(ptp_source_records(text, lin))
+        guard let pairs = try? JSONDecoder().decode([[Int]].self, from: Data(json.utf8)) else { return [] }
+        return pairs.compactMap { $0.count == 2 && $0[0] <= $0[1] ? $0[0]..<$0[1] : nil }
+    }
+
     public static func boardCount(_ pbn: String) -> Int? {
         let n = ptp_board_count(pbn)
         return n < 0 ? nil : Int(n)

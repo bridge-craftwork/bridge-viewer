@@ -77,6 +77,12 @@ struct MenuCommands: Commands {
                 set: { model.options.allPlayRecords = $0 }
             ))
             .disabled(!model.offersPlayRecords)
+            // ⌥⌘U, as Safari's Show Page Source
+            Button(model.isShowingSource ? "Hide Source" : "View Source") {
+                model.isShowingSource.toggle()
+            }
+            .keyboardShortcut("u", modifiers: [.command, .option])
+            .disabled(model.file == nil)
             Button(model.viewMode == .grid ? "Show Pages" : "Show Page Grid") {
                 model.viewMode = model.viewMode == .grid ? .pages : .grid
             }

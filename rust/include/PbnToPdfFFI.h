@@ -55,6 +55,10 @@ int64_t ptp_board_count(const char *pbn);
 /// Composer reads it.
 int32_t ptp_lin_to_pbn(const char *lin, PtpBuffer *out_pbn, char **out_error);
 
+/// Each board's record in a PBN (`lin` false) or LIN source, as JSON
+/// `[[start, end], ...]` byte offsets; NULL if the text won't read.
+char *ptp_source_records(const char *text, bool lin);
+
 void ptp_buffer_free(PtpBuffer buffer);
 void ptp_string_free(char *s);
 
