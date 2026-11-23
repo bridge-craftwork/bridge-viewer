@@ -51,6 +51,10 @@ char *ptp_layouts(void);
 /// Number of boards in a PBN document, or -1 if it cannot be read.
 int64_t ptp_board_count(const char *pbn);
 
+/// A LIN file as PBN text (UTF-8, in `out_pbn`), each record read as Bridge
+/// Composer reads it.
+int32_t ptp_lin_to_pbn(const char *lin, PtpBuffer *out_pbn, char **out_error);
+
 void ptp_buffer_free(PtpBuffer buffer);
 void ptp_string_free(char *s);
 

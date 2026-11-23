@@ -16,6 +16,9 @@ crate-type = ["staticlib", "rlib"]
 # it does for the other internal crates. `cli` is off -- clap and env_logger
 # are dead weight in an app.
 pbn-to-pdf = { git = "https://github.com/bridge-craftwork/pbn-to-pdf", default-features = false }
+# LIN reading and PBN writing, for opening .lin files. The same unpinned git
+# source pbn-to-pdf uses, so the two resolve to one copy.
+bridge-encodings = { git = "https://github.com/bridge-craftwork/bridge-encodings" }
 
 [profile.release]
 lto = true

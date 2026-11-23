@@ -21,6 +21,12 @@
   export is the one honoured; otherwise the winning app's icon shows.
 
   Keep the identifier in step with UTType.pbn in PBNFile.swift.
+
+  LIN (Bridge Base Online's hand records) gets the same pair, a type of our
+  own matched on .lin and a claim on the extension. BBO declares no type for
+  it. The app owns LIN (LSHandlerRank Owner): it reads it into PBN the way
+  Bridge Composer opens it, and is offered first for it. Keep the identifier
+  in step with UTType.lin.
 -->
 <plist version="1.0">
 <dict>
@@ -47,6 +53,30 @@
 				<key>public.filename-extension</key>
 				<array>
 					<string>pbn</string>
+				</array>
+			</dict>
+		</dict>
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>com.popperbiz.lin</string>
+			<key>UTTypeDescription</key>
+			<string>Bridge Base Online hand record</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.plain-text</string>
+			</array>
+			<key>UTTypeIcons</key>
+			<dict>
+				<key>UTTypeIconBadgeName</key>
+				<string>AppIcon</string>
+				<key>UTTypeIconText</key>
+				<string>LIN</string>
+			</dict>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>lin</string>
 				</array>
 			</dict>
 		</dict>
@@ -79,6 +109,34 @@
 			<key>CFBundleTypeExtensions</key>
 			<array>
 				<string>pbn</string>
+			</array>
+		</dict>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Bridge Base Online hand record</string>
+			<key>CFBundleTypeIconSystemGenerated</key>
+			<true/>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>LSHandlerRank</key>
+			<string>Owner</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>com.popperbiz.lin</string>
+			</array>
+		</dict>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Bridge Base Online hand record</string>
+			<key>CFBundleTypeIconSystemGenerated</key>
+			<true/>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>LSHandlerRank</key>
+			<string>Owner</string>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>lin</string>
 			</array>
 		</dict>
 	</array>

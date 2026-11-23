@@ -124,6 +124,19 @@ public enum Renderer {
     }
 
     /// Number of boards in the file, or nil if it can't be read as PBN.
+    /// A LIN file as PBN text, each record read as Bridge Composer reads it.
+    public static func pbn(fromLIN lin: String) throws(RenderError) -> String {
+        var out = PtpBuffer(ptr: nil, len: 0)
+        var error: UnsafeMutablePointer<CChar>?
+        let status = ptp_lin_to_pbn(lin, &out, &error)
+        guard status == PTP_OK, let ptr = out.ptr else {
+            throw RenderError(message: error.map(takeString) ?? "Couldn't read the LIN.")
+        }
+        let text = String(decoding: UnsafeBufferPointer(start: ptr, count: out.len), as: UTF8.self)
+        ptp_buffer_free(out)
+        return text
+    }
+
     public static func boardCount(_ pbn: String) -> Int? {
         let n = ptp_board_count(pbn)
         return n < 0 ? nil : Int(n)
