@@ -26,6 +26,8 @@ typedef struct PtpOptions {
     bool circle_promotable_winners;
     bool circle_length_winners;
     bool omit_page_furniture;
+    /// Draw every board's play record (analysis), not only those BCFlags ask for.
+    bool all_play_records;
 } PtpOptions;
 
 /// Render PBN text to a PDF. `options` may be NULL.

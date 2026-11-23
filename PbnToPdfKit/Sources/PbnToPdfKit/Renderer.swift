@@ -49,6 +49,9 @@ public struct RenderOptions: Sendable, Equatable {
     public var circlePromotableWinners = false
     public var circleLengthWinners = false
     public var omitPageFurniture = false
+    /// Draw the play record of every board that has one (analysis layout),
+    /// not only those whose `BCFlags` ask for it.
+    public var allPlayRecords = false
 
     public init() {}
 }
@@ -157,7 +160,8 @@ public enum Renderer {
                 circle_sure_winners: options.circleSureWinners,
                 circle_promotable_winners: options.circlePromotableWinners,
                 circle_length_winners: options.circleLengthWinners,
-                omit_page_furniture: options.omitPageFurniture
+                omit_page_furniture: options.omitPageFurniture,
+                all_play_records: options.allPlayRecords
             )
             return withUnsafePointer(to: &raw, body)
         }

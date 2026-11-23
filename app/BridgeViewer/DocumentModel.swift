@@ -20,6 +20,10 @@ final class DocumentModel {
         didSet { if options != oldValue { Saved.options = options; render(keepPage: true); renderPreviews() } }
     }
 
+    /// The play-record toggle applies to the analysis layout, and only
+    /// matters when the file records some play.
+    var offersPlayRecords: Bool { layout.rawValue == "analysis" && file?.hasPlay == true }
+
     private(set) var pdf: PDFDocument?
     /// The bytes behind `pdf`, for saving.
     private(set) var pdfData: Data?
@@ -383,12 +387,14 @@ private enum Saved {
             o.circleSureWinners = defaults.bool(forKey: "circleSureWinners")
             o.circlePromotableWinners = defaults.bool(forKey: "circlePromotableWinners")
             o.circleLengthWinners = defaults.bool(forKey: "circleLengthWinners")
+            o.allPlayRecords = defaults.bool(forKey: "allPlayRecords")
             return o
         }
         set {
             defaults.set(newValue.circleSureWinners, forKey: "circleSureWinners")
             defaults.set(newValue.circlePromotableWinners, forKey: "circlePromotableWinners")
             defaults.set(newValue.circleLengthWinners, forKey: "circleLengthWinners")
+            defaults.set(newValue.allPlayRecords, forKey: "allPlayRecords")
         }
     }
 }

@@ -72,6 +72,11 @@ struct MenuCommands: Commands {
                 .keyboardShortcut("-")
                 .disabled(!model.canNavigate)
             Divider()
+            Toggle("Show Play Records", isOn: Binding(
+                get: { model.options.allPlayRecords },
+                set: { model.options.allPlayRecords = $0 }
+            ))
+            .disabled(!model.offersPlayRecords)
             Button(model.viewMode == .grid ? "Show Pages" : "Show Page Grid") {
                 model.viewMode = model.viewMode == .grid ? .pages : .grid
             }

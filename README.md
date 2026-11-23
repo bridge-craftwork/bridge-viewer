@@ -13,7 +13,9 @@ and Print) send it on.
 
 The layout bar stays collapsed to one row showing the current layout --
 most people use one nearly always, and it (and the circling choices) is
-remembered between launches. Tap it for the strip of every layout. Search
+remembered between launches. On the analysis layout, the Play toggle (View ▸ Show
+Play Records) draws every board's trick-by-trick play, for files like Brill's
+exports that record it but don't ask for it with `BCFlags`. Tap it for the strip of every layout. Search
 sits beside it: matches are highlighted, with a count and previous/next (⌘F,
 ⌘G, ⇧⌘G, and ⌘E to find the selected text). In the page grid, each page shows how many
 matches it has, and previous/next move through them without leaving the grid.

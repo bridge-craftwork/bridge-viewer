@@ -62,6 +62,7 @@ pub struct PtpOptions {
     pub circle_promotable_winners: bool,
     pub circle_length_winners: bool,
     pub omit_page_furniture: bool,
+    pub all_play_records: bool,
 }
 
 /// Status codes. Anything but `PTP_OK` comes with an error string.
@@ -251,7 +252,7 @@ unsafe fn read_options(options: *const PtpOptions) -> Result<Options> {
     let Some(o) = options.as_ref() else {
         return Ok(Options {
             boards: None,
-            render: render_options(false, false, false, false),
+            render: render_options(false, false, false, false, false),
         });
     };
     let boards = if o.boards.is_null() {
@@ -266,19 +267,29 @@ unsafe fn read_options(options: *const PtpOptions) -> Result<Options> {
             o.circle_promotable_winners,
             o.circle_length_winners,
             o.omit_page_furniture,
+            o.all_play_records,
         ),
     })
 }
 
-fn render_options(sure: bool, promotable: bool, length: bool, omit: bool) -> RenderOptions {
+fn render_options(
+    sure: bool,
+    promotable: bool,
+    length: bool,
+    omit: bool,
+    all_play_records: bool,
+) -> RenderOptions {
     RenderOptions {
         circle_sure_winners: sure,
         circle_promotable_winners: promotable,
         circle_length_winners: length,
-        // In-section commentary is section data, which BridgeComposer leaves
-        // out; the app takes the matching default, as the browser does.
-        section_commentary: false,
         omit_page_furniture: omit,
+        all_play_records,
+        // In-section commentary is section data, which BridgeComposer leaves
+        // out; the app takes the matching default, as the browser does. Any
+        // option the renderer adds later takes its default too, so a new
+        // field there doesn't break this build.
+        ..RenderOptions::default()
     }
 }
 

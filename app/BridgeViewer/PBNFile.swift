@@ -29,6 +29,10 @@ struct PBNFile: Equatable {
     /// The name without its extension, for naming the PDF.
     var stem: String { (name as NSString).deletingPathExtension }
 
+    /// Whether any board records its play, so the play-record toggle has
+    /// something to show.
+    var hasPlay: Bool { text.contains("[Play ") }
+
     enum ReadError: LocalizedError {
         case unreadable(String)
         case notPBN(String)
