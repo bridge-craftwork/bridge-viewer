@@ -17,6 +17,8 @@ struct PDFKitView {
     let onPinchOut: () -> Void
     /// Handed the view once it exists, for the menu commands.
     var onCreate: (PDFView) -> Void = { _ in }
+    /// A click or tap on a page: its index, and the point in page space.
+    var onClick: (Int, CGPoint) -> Void = { _, _ in }
 
     final class Coordinator: NSObject {
         var parent: PDFKitView
@@ -33,6 +35,14 @@ struct PDFKitView {
                   let index = view.document?.index(for: page)
             else { return }
             parent.onPageChange(index)
+        }
+
+        /// Report a click at `point`, in the view's own coordinates.
+        func clicked(_ view: PDFView, at point: CGPoint) {
+            guard let page = view.page(for: point, nearest: false),
+                  let index = view.document?.index(for: page)
+            else { return }
+            parent.onClick(index, view.convert(point, to: page))
         }
 
         /// True when the view is zoomed out as far as PDFView goes.
@@ -126,6 +136,17 @@ extension PDFKitView: NSViewRepresentable {
 private final class PinchablePDFView: PDFView {
     weak var coordinator: PDFKitView.Coordinator?
     private var total: CGFloat = 0
+    private let place = PlaceKeeper()
+
+    /// Keep the reader's place when the width changes (View Source opening
+    /// or closing): the refit to the new width otherwise leaves the scroll
+    /// offset where it was, on a page now drawn larger or smaller.
+    override func setFrameSize(_ newSize: NSSize) {
+        let widthChanges = newSize.width != frame.width
+        if widthChanges { place.hold(self) }
+        super.setFrameSize(newSize)
+        if widthChanges { place.restoreSoon(self) }
+    }
 
     /// Take the keyboard when the window has nothing else focused, so the
     /// arrow keys, Select All and Copy reach the page before a first click.
@@ -139,6 +160,14 @@ private final class PinchablePDFView: PDFView {
             else { return }
             window.makeFirstResponder(self)
         }
+    }
+
+    /// Watched after `super`, which runs PDFView's own tracking (selection,
+    /// links) to the mouse-up, so the click still does all it did.
+    override func mouseDown(with event: NSEvent) {
+        let point = convert(event.locationInWindow, from: nil)
+        super.mouseDown(with: event)
+        if event.clickCount == 1 { coordinator?.clicked(self, at: point) }
     }
 
     override func magnify(with event: NSEvent) {
@@ -160,17 +189,33 @@ private final class PinchablePDFView: PDFView {
 #else
 extension PDFKitView: UIViewRepresentable {
     func makeUIView(context: Context) -> PDFView {
-        let view = PDFView()
+        let view = PlaceKeepingPDFView()
         view.backgroundColor = .secondarySystemBackground
         configure(view, context.coordinator)
         let pinch = UIPinchGestureRecognizer(
             target: context.coordinator, action: #selector(Coordinator.pinch(_:)))
         pinch.delegate = context.coordinator
         view.addGestureRecognizer(pinch)
+        // Taps are watched, not taken, like the pinch
+        let tap = UITapGestureRecognizer(
+            target: context.coordinator, action: #selector(Coordinator.tap(_:)))
+        tap.cancelsTouchesInView = false
+        tap.delegate = context.coordinator
+        view.addGestureRecognizer(tap)
         return view
     }
 
     func updateUIView(_ view: PDFView, context: Context) { update(view, context.coordinator) }
+}
+
+/// Keeps the reader's place when the width changes, as on the Mac.
+private final class PlaceKeepingPDFView: PDFView {
+    private let place = PlaceKeeper()
+
+    override var frame: CGRect {
+        willSet { if newValue.width != frame.width { place.hold(self) } }
+        didSet { if frame.width != oldValue.width { place.restoreSoon(self) } }
+    }
 }
 
 extension PDFKitView.Coordinator: UIGestureRecognizerDelegate {
@@ -178,6 +223,11 @@ extension PDFKitView.Coordinator: UIGestureRecognizerDelegate {
     func gestureRecognizer(
         _ g: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith other: UIGestureRecognizer
     ) -> Bool { true }
+
+    @objc func tap(_ g: UITapGestureRecognizer) {
+        guard let view = g.view as? PDFView else { return }
+        clicked(view, at: g.location(in: view))
+    }
 
     @objc func pinch(_ g: UIPinchGestureRecognizer) {
         guard let view = g.view as? PDFView else { return }
@@ -200,5 +250,38 @@ extension PDFKitView.Coordinator: PDFViewDelegate {
         #else
         UIApplication.shared.open(url)
         #endif
+    }
+}
+
+/// The place a PDFView was showing before a run of size changes, put back
+/// once they stop. An animated resize sends many; the first one's place is
+/// the reader's, and it is restored after the last, when PDFView has refit.
+private final class PlaceKeeper {
+    /// The page and the point at the view's top-left. Not the destination
+    /// PDFView hands out: that carries the old zoom, and going to it put the
+    /// page back at its old size instead of refitting it to the new width.
+    private var held: (page: PDFPage, point: CGPoint, fitting: Bool)?
+    private var pending: DispatchWorkItem?
+
+    func hold(_ view: PDFView) {
+        guard held == nil, let place = view.currentDestination, let page = place.page else { return }
+        held = (page, place.point, view.autoScales)
+    }
+
+    func restoreSoon(_ view: PDFView) {
+        pending?.cancel()
+        let work = DispatchWorkItem { [weak self, weak view] in
+            guard let self, let view, let place = self.held else { return }
+            self.held = nil
+            guard place.page.document === view.document else { return }
+            if place.fitting {
+                // Refit to the new width before going back
+                view.autoScales = false
+                view.autoScales = true
+            }
+            view.go(to: PDFDestination(page: place.page, at: place.point))
+        }
+        pending = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.08, execute: work)
     }
 }

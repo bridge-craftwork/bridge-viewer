@@ -27,6 +27,14 @@ Mac), pinch within the grid to change its size, tap a page to read it.
 The Boards button (Go ▸ Go to Board…, ⌥⌘B) lists every board with
 its page. Choose one to go straight to it.
 
+View ▸ View Source (⌥⌘U, or the `</>` button) shows the file as it was
+opened — PBN or LIN, syntax-coloured — beside the PDF, or in a sheet on a
+phone. Click a board's record in the source and the PDF goes to that board;
+click a board in the PDF (or choose one in the board index) and its record is
+highlighted and scrolled to. The map between the two comes from the Rust side
+(`ptp_source_records`), which divides the file into records exactly as the
+renderer and the LIN reader do.
+
 With a keyboard (the Mac, or an iPad's menu bar and ⌘-hold list) there are
 the usual menu commands: Open, Close (⌘W), Save PDF (⌘S), Print (⌘P); Copy and
 Select All on text selected in the page (drag across it on the Mac); zoom

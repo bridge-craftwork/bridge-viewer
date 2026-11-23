@@ -206,6 +206,99 @@ pub unsafe extern "C" fn ptp_lin_to_pbn(
     })
 }
 
+/// Where each board's record sits in a source file, as JSON
+/// `[[start, end], ...]` byte offsets: PBN records as
+/// `bridge_encodings::pbn::PbnDocument` divides them (record `i` is board `i`
+/// of the parsed file, and of the click map), LIN records as
+/// `parse_lin_file` divides them (record `i` is board `i` of the PBN that
+/// [`ptp_lin_to_pbn`] makes). For View Source. Null if the text won't read.
+///
+/// # Safety
+/// `text` must be valid NUL-terminated UTF-8.
+#[no_mangle]
+pub unsafe extern "C" fn ptp_source_records(text: *const c_char, lin: bool) -> *mut c_char {
+    catch_unwind(|| {
+        let text = str_arg(text).ok()?;
+        let spans = if lin { lin_records(text) } else { pbn_records(text)? };
+        let json: Vec<String> = spans.iter().map(|(a, b)| format!("[{a},{b}]")).collect();
+        Some(into_c_string(format!("[{}]", json.join(","))))
+    })
+    .ok()
+    .flatten()
+    .unwrap_or(ptr::null_mut())
+}
+
+/// Each PBN board's record, found in order: records are the file's own
+/// text, one after another.
+fn pbn_records(text: &str) -> Option<Vec<(usize, usize)>> {
+    let doc = bridge_encodings::pbn::PbnDocument::parse(text).ok()?;
+    let mut spans = Vec::with_capacity(doc.boards().len());
+    let mut cursor = 0;
+    for board in 0..doc.boards().len() {
+        let record = doc.record(board)?;
+        // Two boards sharing a block both return all of it
+        let start = match text[cursor..].find(record) {
+            Some(at) => cursor + at,
+            None => text.find(record)?,
+        };
+        let end = start + record.len();
+        spans.push((start, end));
+        cursor = end.min(text.len());
+    }
+    Some(spans)
+}
+
+/// Each LIN board's tokens, split as `parse_lin_file` splits them: at each
+/// `qx` (with the `mn`/`pn` before it) when the file has any, keeping those
+/// with a deal, else one board per non-empty line.
+fn lin_records(text: &str) -> Vec<(usize, usize)> {
+    let doc = bridge_encodings::lin::LinDocument::parse(text);
+    if !doc.tokens.iter().any(|t| t.is("qx")) {
+        let mut spans = Vec::new();
+        let mut at = 0;
+        for line in text.split_inclusive('\n') {
+            if !line.trim().is_empty() {
+                spans.push((at, at + line.len()));
+            }
+            at += line.len();
+        }
+        return spans;
+    }
+    // Byte offset of each token, as `command|value|`
+    let mut offsets = Vec::with_capacity(doc.tokens.len() + 1);
+    let mut at = 0;
+    for token in &doc.tokens {
+        offsets.push(at);
+        at += token.raw_command.len() + token.value.len() + 2;
+    }
+    offsets.push(at);
+    let tokens = &doc.tokens;
+    let mut starts = vec![0];
+    for (i, token) in tokens.iter().enumerate() {
+        if !token.is("qx") {
+            continue;
+        }
+        let mut start = i;
+        while start > 0 && (tokens[start - 1].is("mn") || tokens[start - 1].is("pn")) {
+            start -= 1;
+        }
+        if start > starts.last().copied().unwrap_or(0) {
+            starts.push(start);
+        }
+    }
+    let mut spans = Vec::new();
+    for (n, &start) in starts.iter().enumerate() {
+        let end = starts.get(n + 1).copied().unwrap_or(tokens.len());
+        if tokens[start..end].iter().any(|t| t.is("md")) {
+            // A token's command carries the line break before it; start the
+            // span at the command itself.
+            let lead = tokens[start].raw_command.len() - tokens[start].raw_command.trim_start().len();
+            spans.push((offsets[start] + lead, offsets[end]));
+        }
+    }
+    spans
+}
+
 /// # Safety
 /// `buffer` must have come from this library, and be freed only once.
 #[no_mangle]
@@ -430,6 +523,24 @@ mod tests {
             ptp_string_free(err);
             Err(message)
         }
+    }
+
+    #[test]
+    fn source_records_find_each_board() {
+        let two = format!("{PBN}\n{}", PBN.replace("[Board \"1\"]", "[Board \"2\"]"));
+        let spans = pbn_records(&two).unwrap();
+        assert_eq!(spans.len(), 2);
+        assert!(two[spans[0].0..spans[0].1].contains("[Board \"1\"]"));
+        assert!(two[spans[1].0..spans[1].1].contains("[Board \"2\"]"));
+
+        let lines = "pn|,,,|md|1S2,,,|mb|p|\npn|,,,|md|2S3,,,|\n";
+        assert_eq!(lin_records(lines), vec![(0, 23), (23, lines.len())]);
+
+        let qx = "qx|o1|md|1S2,,,|pc|S2|pg||\nqx|o2|md|1S3,,,|";
+        let spans = lin_records(qx);
+        assert_eq!(spans.len(), 2);
+        assert!(qx[spans[0].0..spans[0].1].starts_with("qx|o1|"));
+        assert!(qx[spans[1].0..spans[1].1].starts_with("qx|o2|"));
     }
 
     #[test]

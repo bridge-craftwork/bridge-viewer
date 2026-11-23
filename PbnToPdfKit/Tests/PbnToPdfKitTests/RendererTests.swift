@@ -101,3 +101,16 @@ private func fixture() throws -> String {
 @Test func notALINIsAnError() {
     #expect(throws: RenderError.self) { try Renderer.pbn(fromLIN: "") }
 }
+
+@Test func sourceRecordsLineUpWithTheBoards() throws {
+    let pbn = try fixture()
+    let records = Renderer.sourceRecords(pbn, lin: false)
+    #expect(records.count == Renderer.boardCount(pbn))
+    let bytes = Array(pbn.utf8)
+    for (i, range) in records.enumerated() {
+        let text = String(decoding: bytes[range], as: UTF8.self)
+        #expect(text.contains("[Board"), "record \(i)")
+    }
+    let lin = "pn|,,,|md|1S2,,,|mb|p|\npn|,,,|md|2S3,,,|\n"
+    #expect(Renderer.sourceRecords(lin, lin: true).count == 2)
+}

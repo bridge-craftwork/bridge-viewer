@@ -82,6 +82,14 @@ private struct Toolbar: ToolbarContent {
                 .help("Show one page at a time, or every page as a grid")
             }
         }
+        if model.file != nil {
+            ToolbarItem(placement: .primaryAction) {
+                Toggle(isOn: $model.isShowingSource) {
+                    Label("Source", systemImage: "chevron.left.forwardslash.chevron.right")
+                }
+                .help("Show the file's source beside the PDF")
+            }
+        }
         #if os(macOS)
         if model.pdfData != nil {
             ToolbarItem(placement: .primaryAction) {
@@ -154,6 +162,61 @@ private struct DocumentView: View {
                 .transition(.move(edge: .top).combined(with: .opacity))
             }
             Divider()
+            // The PDF stays the first child whether or not the source is
+            // beside it, so showing the source keeps its view and place.
+            HStack(spacing: 0) {
+                pages
+                if showsSourceBeside, let file = model.file {
+                    Divider()
+                    sourcePane(file)
+                        .containerRelativeFrame(.horizontal) { width, _ in width * 0.42 }
+                        .transition(.move(edge: .trailing))
+                }
+            }
+            .animation(.easeInOut(duration: 0.2), value: showsSourceBeside)
+        }
+        #if os(iOS)
+        // On a phone there's no room beside the PDF
+        .sheet(isPresented: Binding(
+            get: { model.isShowingSource && sizeClass == .compact },
+            set: { if !$0 { model.isShowingSource = false } }
+        )) {
+            if let file = model.file {
+                NavigationStack {
+                    sourcePane(file)
+                        .navigationTitle(file.name)
+                        .navigationBarTitleDisplayMode(.inline)
+                        .toolbar {
+                            Button("Done") { model.isShowingSource = false }
+                        }
+                }
+                .presentationDetents([.medium, .large])
+            }
+        }
+        #endif
+        #if DEBUG
+        .onReceive(NotificationCenter.default.publisher(for: .debugCollapseStrip)) { _ in
+            withAnimation(.easeInOut(duration: 0.2)) { expanded = false }
+        }
+        #endif
+    }
+
+    #if os(iOS)
+    @Environment(\.horizontalSizeClass) private var sizeClass
+    private var showsSourceBeside: Bool { model.isShowingSource && sizeClass != .compact }
+    #else
+    private var showsSourceBeside: Bool { model.isShowingSource }
+    #endif
+
+    private func sourcePane(_ file: PBNFile) -> some View {
+        SourceView(
+            file: file,
+            highlighted: model.sourceRecord,
+            onSelectRecord: { model.selectSourceRecord($0) }
+        )
+    }
+
+    private var pages: some View {
             ZStack(alignment: .bottom) {
                 // Stays alive under the grid, so leaving the grid without
                 // choosing a page returns to the same place.
@@ -163,7 +226,8 @@ private struct DocumentView: View {
                     search: (model.searchResults, model.searchIndex, model.searchGeneration),
                     onPageChange: { model.currentPage = $0 },
                     onPinchOut: { withAnimation(.easeInOut(duration: 0.2)) { model.viewMode = .grid } },
-                    onCreate: { model.pdfView = $0 }
+                    onCreate: { model.pdfView = $0 },
+                    onClick: { model.pdfClicked(page: $0, at: $1) }
                 )
                 if model.viewMode == .grid, let loader = model.thumbnails {
                     PageGrid(loader: loader)
@@ -183,12 +247,6 @@ private struct DocumentView: View {
                 }
             }
             .animation(.easeInOut(duration: 0.2), value: model.viewMode)
-        }
-        #if DEBUG
-        .onReceive(NotificationCenter.default.publisher(for: .debugCollapseStrip)) { _ in
-            withAnimation(.easeInOut(duration: 0.2)) { expanded = false }
-        }
-        #endif
     }
 }
 
