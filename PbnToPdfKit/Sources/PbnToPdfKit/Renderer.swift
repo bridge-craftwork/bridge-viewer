@@ -52,6 +52,10 @@ public struct RenderOptions: Sendable, Equatable {
     /// Draw the play record of every board that has one (analysis layout),
     /// not only those whose `BCFlags` ask for it.
     public var allPlayRecords = false
+    /// Lay the play record out one column per seat, clockwise from the
+    /// opening leader, with each card's double-dummy cost when the file has
+    /// a `[DoubleDummyPlay]` section, instead of Bridge Composer's play order.
+    public var playBySeat = false
 
     public init() {}
 }
@@ -183,7 +187,8 @@ public enum Renderer {
                 circle_promotable_winners: options.circlePromotableWinners,
                 circle_length_winners: options.circleLengthWinners,
                 omit_page_furniture: options.omitPageFurniture,
-                all_play_records: options.allPlayRecords
+                all_play_records: options.allPlayRecords,
+                play_by_seat: options.playBySeat
             )
             return withUnsafePointer(to: &raw, body)
         }

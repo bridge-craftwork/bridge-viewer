@@ -15,7 +15,7 @@ The layout bar stays collapsed to one row showing the current layout --
 most people use one nearly always, and it (and the circling choices) is
 remembered between launches. On the analysis layout, the Play toggle (View ▸ Show
 Play Records) draws every board's trick-by-trick play, for files like Brill's
-exports that record it but don't ask for it with `BCFlags`. Tap it for the strip of every layout. Search
+exports that record it but don't ask for it with `BCFlags`. Beside it, By Seat (View ▸ Play Records by Seat, on unless turned off) lays the play out one column per player instead of Bridge Composer's play order, and when the file has a `[DoubleDummyPlay]` section (bridge-solver's `--play`) marks each card that cost a trick. Tap it for the strip of every layout. Search
 sits beside it: matches are highlighted, with a count and previous/next (⌘F,
 ⌘G, ⇧⌘G, and ⌘E to find the selected text). In the page grid, each page shows how many
 matches it has, and previous/next move through them without leaving the grid.
@@ -72,7 +72,10 @@ open app/BridgeViewer.xcodeproj
 
 The xcframework is generated and gitignored. Rebuild it whenever the renderer
 changes; `scripts/build-xcframework.sh --update` pulls the newest pbn-to-pdf
-first.
+first. To build against sibling checkouts of pbn-to-pdf, bridge-types and
+bridge-encodings instead, put `[patch]` entries pointing at them in a
+`.cargo/config.toml` at the repo root (gitignored), as pbn-to-pdf does for the
+bridge crates.
 
 Debug builds take launch arguments for screenshots: `-LoadSample` or
 `-LoadFile <path>` (the latter not on the sandboxed Mac), then `-Layout

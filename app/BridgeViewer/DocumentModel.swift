@@ -418,6 +418,8 @@ private enum Saved {
             o.circlePromotableWinners = defaults.bool(forKey: "circlePromotableWinners")
             o.circleLengthWinners = defaults.bool(forKey: "circleLengthWinners")
             o.allPlayRecords = defaults.bool(forKey: "allPlayRecords")
+            // By seat unless turned off: it reads better than play order
+            o.playBySeat = defaults.object(forKey: "playBySeat") as? Bool ?? true
             return o
         }
         set {
@@ -425,6 +427,7 @@ private enum Saved {
             defaults.set(newValue.circlePromotableWinners, forKey: "circlePromotableWinners")
             defaults.set(newValue.circleLengthWinners, forKey: "circleLengthWinners")
             defaults.set(newValue.allPlayRecords, forKey: "allPlayRecords")
+            defaults.set(newValue.playBySeat, forKey: "playBySeat")
         }
     }
 }

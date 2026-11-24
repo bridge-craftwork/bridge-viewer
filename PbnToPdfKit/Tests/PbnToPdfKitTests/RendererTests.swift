@@ -114,3 +114,29 @@ private func fixture() throws -> String {
     let lin = "pn|,,,|md|1S2,,,|mb|p|\npn|,,,|md|2S3,,,|\n"
     #expect(Renderer.sourceRecords(lin, lin: true).count == 2)
 }
+
+@Test func playRecordsLayOutBySeat() throws {
+    let pbn = """
+    [Board "1"]
+    [Dealer "N"]
+    [Vulnerable "None"]
+    [Deal "N:QJ7.8.T9752.J752 K542.T7.QJ6.Q943 A863.Q932.K84.K8 T9.AKJ654.A3.AT6"]
+    [Declarer "S"]
+    [Contract "3D"]
+    [Play "W"]
+    HA H8 H7 H2
+    ST SJ S5 S3
+    *
+    """
+    let layout = try #require(PageLayout.all.first { $0.rawValue == "analysis" })
+    var options = RenderOptions()
+    options.allPlayRecords = true
+    func text(_ options: RenderOptions) throws -> String {
+        try #require(PDFDocument(data: try Renderer.render(pbn, layout: layout, options: options))?.string)
+    }
+    #expect(try text(options).contains("Trick"))
+    options.playBySeat = true
+    let bySeat = try text(options)
+    #expect(bySeat.contains("Declarer") && bySeat.contains("Dummy"))
+    #expect(!bySeat.contains("Trick\n"))
+}

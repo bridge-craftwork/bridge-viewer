@@ -28,6 +28,8 @@ typedef struct PtpOptions {
     bool omit_page_furniture;
     /// Draw every board's play record (analysis), not only those BCFlags ask for.
     bool all_play_records;
+    /// Lay the play record out by seat, with [DoubleDummyPlay] costs.
+    bool play_by_seat;
 } PtpOptions;
 
 /// Render PBN text to a PDF. `options` may be NULL.

@@ -77,6 +77,11 @@ struct MenuCommands: Commands {
                 set: { model.options.allPlayRecords = $0 }
             ))
             .disabled(!model.offersPlayRecords)
+            Toggle("Play Records by Seat", isOn: Binding(
+                get: { model.options.playBySeat },
+                set: { model.options.playBySeat = $0 }
+            ))
+            .disabled(!model.offersPlayRecords)
             // ⌥⌘U, as Safari's Show Page Source
             Button(model.isShowingSource ? "Hide Source" : "View Source") {
                 model.isShowingSource.toggle()
