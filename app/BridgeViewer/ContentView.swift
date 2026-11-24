@@ -485,11 +485,17 @@ private struct PlayRecordToggle: View {
     @Binding var options: RenderOptions
 
     var body: some View {
-        Toggle("Play", isOn: $options.allPlayRecords)
-            .toggleStyle(.button)
-            .font(.subheadline)
-            .fixedSize()
-            .help("Show each board's play, trick by trick")
+        HStack(spacing: 4) {
+            Toggle("Play", isOn: $options.allPlayRecords)
+                .help("Show each board's play, trick by trick")
+            if options.allPlayRecords {
+                Toggle("By Seat", isOn: $options.playBySeat)
+                    .help("One column per player, with double-dummy costs when the file has them")
+            }
+        }
+        .toggleStyle(.button)
+        .font(.subheadline)
+        .fixedSize()
     }
 }
 
