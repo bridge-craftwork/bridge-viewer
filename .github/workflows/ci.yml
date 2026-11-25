@@ -56,8 +56,11 @@ jobs:
           xcodebuild -project app/BridgeViewer.xcodeproj -scheme BridgeViewer
           -destination 'generic/platform=macOS'
           CODE_SIGNING_ALLOWED=NO build
+      # The xcframework's simulator slice is Apple silicon only (README), so
+      # build that architecture rather than the generic destination's arm64 +
+      # x86_64.
       - name: Build the iOS app for the simulator (unsigned)
         run: >
           xcodebuild -project app/BridgeViewer.xcodeproj -scheme BridgeViewer
-          -destination 'generic/platform=iOS Simulator'
+          -destination 'generic/platform=iOS Simulator' ARCHS=arm64
           CODE_SIGNING_ALLOWED=NO build

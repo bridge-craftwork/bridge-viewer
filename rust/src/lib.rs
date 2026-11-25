@@ -220,7 +220,11 @@ pub unsafe extern "C" fn ptp_lin_to_pbn(
 pub unsafe extern "C" fn ptp_source_records(text: *const c_char, lin: bool) -> *mut c_char {
     catch_unwind(|| {
         let text = str_arg(text).ok()?;
-        let spans = if lin { lin_records(text) } else { pbn_records(text)? };
+        let spans = if lin {
+            lin_records(text)
+        } else {
+            pbn_records(text)?
+        };
         let json: Vec<String> = spans.iter().map(|(a, b)| format!("[{a},{b}]")).collect();
         Some(into_c_string(format!("[{}]", json.join(","))))
     })
@@ -293,7 +297,8 @@ fn lin_records(text: &str) -> Vec<(usize, usize)> {
         if tokens[start..end].iter().any(|t| t.is("md")) {
             // A token's command carries the line break before it; start the
             // span at the command itself.
-            let lead = tokens[start].raw_command.len() - tokens[start].raw_command.trim_start().len();
+            let lead =
+                tokens[start].raw_command.len() - tokens[start].raw_command.trim_start().len();
             spans.push((offsets[start] + lead, offsets[end]));
         }
     }
