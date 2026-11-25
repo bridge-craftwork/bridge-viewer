@@ -91,6 +91,11 @@ cd PbnToPdfKit && swift test                    # the Swift API, on the Mac
 ./dev-build.sh --workspace rust test            # the C ABI
 ```
 
+CI (`.github/workflows/ci.yml`) runs the Rust checks on Linux, and on macOS
+builds the xcframework, runs the Swift tests and builds the app unsigned for
+the Mac and the iOS simulator. It also runs daily, since a pbn-to-pdf change
+can break this repo with no commit here.
+
 ## Opening .pbn files
 
 Neither iOS nor macOS has a system type for `.pbn` — which is why Safari greys

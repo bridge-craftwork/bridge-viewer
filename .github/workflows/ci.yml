@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  # pbn-to-pdf is an unpinned git dependency and rust/Cargo.lock isn't
+  # committed, so a renderer change can break this repo without a commit here.
+  # A daily run surfaces that the same day.
+  schedule:
+    - cron: "17 11 * * *"
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  rust:
+    name: C ABI (Rust)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust
+      - run: cargo fmt --all -- --check
+      - run: cargo clippy --all-targets -- -D warnings
+      - run: cargo test
+
+  apple:
+    name: PbnToPdfKit and the app
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-ios, aarch64-apple-ios-sim, aarch64-apple-darwin, x86_64-apple-darwin
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust
+      - name: Toolchain
+        run: xcodebuild -version && swift --version
+      - name: Build the xcframework
+        run: scripts/build-xcframework.sh
+      - name: Test PbnToPdfKit
+        working-directory: PbnToPdfKit
+        run: swift test
+      - name: Build the Mac app (unsigned)
+        run: >
+          xcodebuild -project app/BridgeViewer.xcodeproj -scheme BridgeViewer
+          -destination 'generic/platform=macOS'
+          CODE_SIGNING_ALLOWED=NO build
+      - name: Build the iOS app for the simulator (unsigned)
+        run: >
+          xcodebuild -project app/BridgeViewer.xcodeproj -scheme BridgeViewer
+          -destination 'generic/platform=iOS Simulator'
+          CODE_SIGNING_ALLOWED=NO build
