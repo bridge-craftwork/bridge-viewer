@@ -8,6 +8,11 @@
 #
 #   scripts/build-xcframework.sh            # iOS device, Apple-silicon simulator, macOS
 #   scripts/build-xcframework.sh --update   # cargo update first
+#
+# Cargo runs through dev-build.sh, as in the other Rust repos: with [patch]
+# overrides in a local .cargo/config.toml it checks that pbn-to-pdf and the
+# bridge crates really resolved to the sibling checkouts, rather than cargo
+# quietly building the GitHub revisions when the versions differ.
 set -euo pipefail
 
 root="$(cd "$(dirname "$0")/.." && pwd)"
@@ -26,7 +31,7 @@ export IPHONEOS_DEPLOYMENT_TARGET=18.0
 export MACOSX_DEPLOYMENT_TARGET=15.0
 
 if [[ "${1:-}" == "--update" ]]; then
-  cargo update --manifest-path "$crate/Cargo.toml"
+  "$root/dev-build.sh" --workspace rust update
 fi
 
 missing=()
@@ -40,7 +45,7 @@ if (( ${#missing[@]} )); then
 fi
 
 for t in "${targets[@]}"; do
-  cargo build --manifest-path "$crate/Cargo.toml" --release --lib --target "$t"
+  "$root/dev-build.sh" --workspace rust build --release --lib --target "$t"
 done
 
 mac_dir="$crate/target/universal-apple-darwin/release"

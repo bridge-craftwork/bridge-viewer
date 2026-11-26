@@ -74,8 +74,11 @@ The xcframework is generated and gitignored. Rebuild it whenever the renderer
 changes; `scripts/build-xcframework.sh --update` pulls the newest pbn-to-pdf
 first. To build against sibling checkouts of pbn-to-pdf, bridge-types and
 bridge-encodings instead, put `[patch]` entries pointing at them in a
-`.cargo/config.toml` at the repo root (gitignored), as pbn-to-pdf does for the
-bridge crates.
+`.cargo/config.toml` at the repo root (gitignored), as the other Rust repos do.
+Cargo then goes through `dev-build.sh` (the script those repos share, run with
+`--workspace rust`), which the xcframework script already uses: it checks each
+patched crate really resolved to its local checkout, since cargo quietly
+builds the GitHub revision instead when the versions differ.
 
 Debug builds take launch arguments for screenshots: `-LoadSample` or
 `-LoadFile <path>` (the latter not on the sandboxed Mac), then `-Layout
@@ -85,8 +88,13 @@ change two seconds in, folding the strip as a tap does) and `-ToggleCircling`
 
 ```bash
 cd PbnToPdfKit && swift test                    # the Swift API, on the Mac
-cargo test --manifest-path rust/Cargo.toml      # the C ABI
+./dev-build.sh --workspace rust test            # the C ABI
 ```
+
+CI (`.github/workflows/ci.yml`) runs the Rust checks on Linux, and on macOS
+builds the xcframework, runs the Swift tests and builds the app unsigned for
+the Mac and the iOS simulator. It also runs daily, since a pbn-to-pdf change
+can break this repo with no commit here.
 
 ## Opening .pbn files
 
