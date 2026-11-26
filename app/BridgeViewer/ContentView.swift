@@ -15,6 +15,16 @@ struct ContentView: View {
                     EmptyState()
                 }
             }
+            // Save PBN's exporter sits here, not beside Save PDF's: two
+            // exporters on one view and only one of them works.
+            .fileExporter(
+                isPresented: $model.isExportingPBN,
+                document: model.pbnToSave.map(PBNTextFile.init),
+                contentType: .pbn,
+                defaultFilename: model.suggestedPBNName
+            ) { result in
+                if case .success = result { model.pbnSaved() }
+            }
             .navigationTitle(model.file?.name ?? "Bridge Viewer")
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
@@ -83,6 +93,11 @@ private struct Toolbar: ToolbarContent {
             }
         }
         if model.file != nil {
+            ToolbarItem(placement: .primaryAction) {
+                Button("Solve", systemImage: "wand.and.sparkles") { model.solve() }
+                    .help("Work out each board double dummy, and what each card played cost")
+                    .disabled(model.isSolving)
+            }
             ToolbarItem(placement: .primaryAction) {
                 Toggle(isOn: $model.isShowingSource) {
                     Label("Source", systemImage: "chevron.left.forwardslash.chevron.right")
@@ -155,6 +170,10 @@ private struct DocumentView: View {
     var body: some View {
         VStack(spacing: 0) {
             LayoutBar(expanded: $expanded)
+            if model.isSolving || model.solveOutcome != nil {
+                Divider()
+                SolveBanner()
+            }
             if expanded {
                 LayoutStrip {
                     withAnimation(.easeInOut(duration: 0.2)) { expanded = false }

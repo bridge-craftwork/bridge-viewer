@@ -217,6 +217,84 @@ final class DocumentModel {
         match.pages.first.flatMap { pdf?.index(for: $0) }
     }
 
+    // MARK: Solve
+
+    /// Where a solve has got, while one runs.
+    private(set) var solveProgress: SolveProgress?
+    var isSolving: Bool { solveTask != nil }
+    /// What the last solve did, or why it stopped: shown in the banner until
+    /// dismissed or the file changes.
+    private(set) var solveOutcome: SolveOutcome?
+    /// The analysis is in the PBN the app shows but not in any file yet, so
+    /// Save PBN is worth offering.
+    private(set) var hasUnsavedAnalysis = false
+    var isExportingPBN = false
+    private var solveTask: Task<Void, Never>?
+    /// Bumped per solve and when one is dropped, so a solve that ends after
+    /// its file was closed or replaced changes nothing.
+    private var solveGeneration = 0
+
+    enum SolveOutcome: Equatable {
+        case done(SolveReport)
+        case failed(String)
+    }
+
+    /// Work out each board double dummy, and with `play` what each card
+    /// played cost, writing it into the PBN as bridge-solver does. Boards
+    /// already solved keep their analysis unless `recalculate`.
+    func solve(recalculate: Bool = false) {
+        guard let file, solveTask == nil else { return }
+        var options = SolveOptions()
+        options.play = file.hasPlay
+        options.recalculate = recalculate
+        solveOutcome = nil
+        solveProgress = nil
+        let text = file.text
+        solveGeneration += 1
+        let mine = solveGeneration
+        solveTask = Task {
+            let result: Result<(pbn: String, report: SolveReport), SolveError>
+            do {
+                result = .success(try await Solver.solve(text, options: options) { progress in
+                    Task { @MainActor in
+                        if mine == self.solveGeneration { self.solveProgress = progress }
+                    }
+                })
+            } catch {
+                result = .failure(error as? SolveError ?? .failed(error.localizedDescription))
+            }
+            guard mine == self.solveGeneration else { return }
+            self.solveTask = nil
+            self.solveProgress = nil
+            switch result {
+            case .success(let (pbn, report)):
+                if report.changedAnything, let solved = try? self.file?.withAnalysis(pbn) {
+                    self.file = solved
+                    self.hasUnsavedAnalysis = true
+                    self.render(keepPage: true)
+                    self.renderPreviews()
+                }
+                self.solveOutcome = .done(report)
+            case .failure(.cancelled):
+                break
+            case .failure(let error):
+                self.solveOutcome = .failed(error.localizedDescription)
+            }
+        }
+    }
+
+    func cancelSolve() {
+        solveTask?.cancel()
+    }
+
+    func dismissSolveOutcome() { solveOutcome = nil }
+
+    /// The PBN as it now stands, for Save PBN.
+    var pbnToSave: String? { file?.text }
+    var suggestedPBNName: String { "\(file?.stem ?? "Bridge Viewer").pbn" }
+
+    func pbnSaved() { hasUnsavedAnalysis = false }
+
     // MARK: Menu and toolbar requests (the Mac menu bar reaches them here)
 
     var isImporting = false
@@ -234,6 +312,7 @@ final class DocumentModel {
     }
 
     func load(_ file: PBNFile) {
+        endSolve()
         error = nil
         sourceRecord = nil
         self.file = file
@@ -246,6 +325,7 @@ final class DocumentModel {
     /// Back to the empty window. Bumping the generations drops any render
     /// still in flight for the closed file.
     func close() {
+        endSolve()
         generation += 1
         previewGeneration += 1
         endSearch()
@@ -263,6 +343,16 @@ final class DocumentModel {
         viewMode = .pages
         currentPage = 0
         sourceRecord = nil
+    }
+
+    /// Drop the solve state with the file it was about.
+    private func endSolve() {
+        solveGeneration += 1
+        solveTask?.cancel()
+        solveTask = nil
+        solveProgress = nil
+        solveOutcome = nil
+        hasUnsavedAnalysis = false
     }
 
     /// `keepPage`: the change doesn't move content between pages (circling
@@ -379,6 +469,12 @@ final class DocumentModel {
             layout = match
             // As a tap in the strip does: the strip folds away too.
             NotificationCenter.default.post(name: .debugCollapseStrip, object: nil)
+        }
+        // Solve once the PDF is up, logging the outcome for a scripted check.
+        if args.contains("-Solve") {
+            solve()
+            while isSolving { try? await Task.sleep(for: .milliseconds(100)) }
+            print("Solve outcome: \(String(describing: solveOutcome)), unsaved: \(hasUnsavedAnalysis)")
         }
         if args.contains("-ToggleCircling") {
             try? await Task.sleep(for: .seconds(2))

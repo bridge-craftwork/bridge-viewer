@@ -34,6 +34,18 @@ struct MenuCommands: Commands {
             Button("Save PDF…") { model.isExporting = true }
                 .keyboardShortcut("s")
                 .disabled(model.pdfData == nil)
+            Button("Save PBN…") { model.isExportingPBN = true }
+                .keyboardShortcut("s", modifiers: [.command, .shift])
+                .disabled(model.file == nil)
+            Divider()
+            Button("Solve Double Dummy") { model.solve() }
+                .keyboardShortcut("d", modifiers: [.command, .shift])
+                .disabled(model.file == nil || model.isSolving)
+            Button("Solve Every Board Again") { model.solve(recalculate: true) }
+                .disabled(model.file == nil || model.isSolving)
+            Button("Stop Solving") { model.cancelSolve() }
+                .keyboardShortcut(".")
+                .disabled(!model.isSolving)
         }
         CommandGroup(replacing: .printItem) {
             Button("Print…") { model.printPDF() }
