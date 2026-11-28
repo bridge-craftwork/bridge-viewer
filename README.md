@@ -27,6 +27,17 @@ Mac), pinch within the grid to change its size, tap a page to read it.
 The Boards button (Go ▸ Go to Board…, ⌥⌘B) lists every board with
 its page. Choose one to go straight to it.
 
+Solve (the wand, or File ▸ Solve Double Dummy, ⇧⌘D) works out every board
+double dummy in the background, as bridge-solver's CLI does (its `annotate`
+module, linked in): `[DoubleDummyTricks]`, par and `[OptimumResultTable]` for
+each board without them, and for a file that records its play a
+`[DoubleDummyPlay]` section per board, which Play by Seat turns into costs on
+the cards. A strip under the layout bar shows progress with Cancel (⌘.), then
+what was done and which boards were skipped. The analysis goes into the PBN
+the app shows, the rest of the file kept byte for byte; File ▸ Save PBN… (⇧⌘S)
+writes it out, and a LIN file is saved as PBN. Solve Every Board Again redoes
+boards that already have analysis.
+
 View ▸ View Source (⌥⌘U, or the `</>` button) shows the file as it was
 opened — PBN or LIN, syntax-coloured — beside the PDF, or in a sheet on a
 phone. Click a board's record in the source and the PDF goes to that board;
@@ -84,7 +95,8 @@ Debug builds take launch arguments for screenshots: `-LoadSample` or
 `-LoadFile <path>` (the latter not on the sandboxed Mac), then `-Layout
 <name>`, `-ShowGrid`, `-ShowBoards` (the board index open), `-GoToBoard <n>`, `-Search <text>`, `-SwitchLayout <name>` (a layout
 change two seconds in, folding the strip as a tap does) and `-ToggleCircling`
-(a re-render two seconds in, with search open).
+(a re-render two seconds in, with search open) and `-Solve` (a solve once the PDF
+is up, its outcome printed).
 
 ```bash
 cd PbnToPdfKit && swift test                    # the Swift API, on the Mac

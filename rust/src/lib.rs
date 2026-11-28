@@ -19,10 +19,15 @@
 //! The declarations Swift sees are hand-written in `include/PbnToPdfFFI.h`;
 //! keep the two in step.
 
-use std::ffi::{c_char, CStr, CString};
+use std::ffi::{c_char, c_void, CStr, CString};
 use std::panic::{catch_unwind, AssertUnwindSafe};
 use std::ptr;
 use std::str::FromStr;
+use std::sync::Mutex;
+
+use bridge_solver::annotate::{
+    annotate_pbn, AnnotateError, AnnotateOptions, Progress, Report, Stage,
+};
 
 use pbn_to_pdf::cli::parse_board_range;
 use pbn_to_pdf::{
@@ -303,6 +308,159 @@ fn lin_records(text: &str) -> Vec<(usize, usize)> {
         }
     }
     spans
+}
+
+/// What Solve analyses. Every field may be left zeroed.
+#[repr(C)]
+pub struct PtpSolveOptions {
+    /// Also analyse each recorded play card by card, into `[DoubleDummyPlay]`.
+    pub play: bool,
+    /// Redo boards that already carry analysis, rather than only filling in
+    /// what is missing.
+    pub recalculate: bool,
+}
+
+/// Progress for [`ptp_solve`]: `stage` is [`PTP_STAGE_TABLES`] (counted in
+/// strains, five per board) or [`PTP_STAGE_PLAY`] (counted in boards), and
+/// `done` of `total` are finished. Called as each stage starts and as each
+/// item finishes, from the solver's worker threads but never two at once.
+/// Return false to cancel.
+pub type PtpProgress = Option<
+    unsafe extern "C" fn(context: *mut c_void, stage: u32, done: usize, total: usize) -> bool,
+>;
+
+pub const PTP_CANCELLED: i32 = 3;
+pub const PTP_STAGE_TABLES: u32 = 0;
+pub const PTP_STAGE_PLAY: u32 = 1;
+
+/// The progress callback and its context, shared with the worker threads.
+/// The lock keeps calls into Swift one at a time.
+struct ProgressSink {
+    callback: PtpProgress,
+    context: *mut c_void,
+    lock: Mutex<()>,
+}
+
+// SAFETY: the context is only ever handed back to the caller's callback, one
+// call at a time under `lock`; the caller promises it may be used from any
+// thread (see `ptp_solve`).
+unsafe impl Sync for ProgressSink {}
+
+impl ProgressSink {
+    fn report(&self, progress: Progress) -> bool {
+        let Some(callback) = self.callback else {
+            return true;
+        };
+        let stage = match progress.stage {
+            Stage::Tables => PTP_STAGE_TABLES,
+            Stage::Play => PTP_STAGE_PLAY,
+        };
+        let _one_at_a_time = self.lock.lock().unwrap_or_else(|e| e.into_inner());
+        // SAFETY: the caller supplied the callback and context together and
+        // keeps both alive for the duration of `ptp_solve`.
+        unsafe { callback(self.context, stage, progress.done, progress.total) }
+    }
+}
+
+/// Solve a PBN file double dummy, as bridge-solver's CLI does: each board
+/// with a complete deal and no analysis yet gets `[DoubleDummyTricks]`, par
+/// and `[OptimumResultTable]`, and with `options.play` each recorded play a
+/// `[DoubleDummyPlay]` section. The rest of the file is kept byte for byte.
+///
+/// Runs on the calling thread, spreading the work over worker threads, and
+/// returns when done: call it off the main thread. On `PTP_OK`, `*out_pbn`
+/// holds the new text (UTF-8) and `*out_report` JSON
+/// `{"tables": n, "plays": n, "skipped": [{"board": "4", "reason": "..."}]}`.
+/// `PTP_CANCELLED` when `progress` returned false, with `*out_error` saying so.
+/// Otherwise `*out_error` holds a message.
+///
+/// # Safety
+/// `pbn` must be valid NUL-terminated UTF-8. `options` may be null.
+/// `progress` may be null; if not, it and `context` must stay valid until
+/// this returns and be callable from any thread. The out-parameters must be
+/// valid for writes.
+#[no_mangle]
+pub unsafe extern "C" fn ptp_solve(
+    pbn: *const c_char,
+    options: *const PtpSolveOptions,
+    progress: PtpProgress,
+    context: *mut c_void,
+    out_pbn: *mut PtpBuffer,
+    out_report: *mut *mut c_char,
+    out_error: *mut *mut c_char,
+) -> i32 {
+    out_report.write(ptr::null_mut());
+    let mut report = None;
+    let mut cancelled = false;
+    let status = boundary(out_pbn, out_error, || {
+        let pbn = str_arg(pbn)?;
+        let solve = options.as_ref();
+        let options = AnnotateOptions {
+            play: solve.is_some_and(|o| o.play),
+            recalculate: solve.is_some_and(|o| o.recalculate),
+            ..AnnotateOptions::default()
+        };
+        let sink = ProgressSink {
+            callback: progress,
+            context,
+            lock: Mutex::new(()),
+        };
+        match annotate_pbn(pbn, &options, &|p| sink.report(p)) {
+            Ok((text, done)) => {
+                report = Some(report_json(&done));
+                Ok(text.into_bytes())
+            }
+            Err(AnnotateError::Cancelled) => {
+                cancelled = true;
+                Err("Cancelled.".into())
+            }
+            Err(e) => Err(e.to_string()),
+        }
+    });
+    if cancelled {
+        return PTP_CANCELLED;
+    }
+    if let Some(json) = report {
+        out_report.write(into_c_string(json));
+    }
+    status
+}
+
+/// [`ptp_solve`]'s report as JSON.
+fn report_json(report: &Report) -> String {
+    let skipped: Vec<String> = report
+        .skipped
+        .iter()
+        .map(|s| {
+            format!(
+                "{{\"board\":{},\"reason\":{}}}",
+                json_string(&s.label),
+                json_string(&s.reason)
+            )
+        })
+        .collect();
+    format!(
+        "{{\"tables\":{},\"plays\":{},\"skipped\":[{}]}}",
+        report.tables,
+        report.plays,
+        skipped.join(",")
+    )
+}
+
+fn json_string(s: &str) -> String {
+    let mut out = String::with_capacity(s.len() + 2);
+    out.push('"');
+    for c in s.chars() {
+        match c {
+            '"' => out.push_str("\\\""),
+            '\\' => out.push_str("\\\\"),
+            '\n' => out.push_str("\\n"),
+            c if (c as u32) < 0x20 => out.push_str(&format!("\\u{:04x}", c as u32)),
+            c => out.push(c),
+        }
+    }
+    out.push('"');
+    out
 }
 
 /// # Safety
@@ -617,5 +775,108 @@ mod tests {
         unsafe { ptp_string_free(s) };
         let expected: Vec<&str> = Layout::ALL.iter().map(Layout::as_str).collect();
         assert_eq!(names.split('\n').collect::<Vec<_>>(), expected);
+    }
+
+    /// Calls to the progress callback, and whether to carry on.
+    struct Seen {
+        calls: Mutex<Vec<(u32, usize, usize)>>,
+        carry_on: bool,
+    }
+
+    unsafe extern "C" fn record(
+        context: *mut c_void,
+        stage: u32,
+        done: usize,
+        total: usize,
+    ) -> bool {
+        let seen = &*(context as *const Seen);
+        seen.calls.lock().unwrap().push((stage, done, total));
+        seen.carry_on
+    }
+
+    unsafe fn solve(pbn: &str, carry_on: bool) -> (i32, String, String, Vec<(u32, usize, usize)>) {
+        let pbn = CString::new(pbn).unwrap();
+        let options = PtpSolveOptions {
+            play: true,
+            recalculate: false,
+        };
+        let seen = Seen {
+            calls: Mutex::new(Vec::new()),
+            carry_on,
+        };
+        let (mut out, mut report, mut err) = (PtpBuffer::EMPTY, ptr::null_mut(), ptr::null_mut());
+        let status = ptp_solve(
+            pbn.as_ptr(),
+            &options,
+            Some(record),
+            &seen as *const Seen as *mut c_void,
+            &mut out,
+            &mut report,
+            &mut err,
+        );
+        let text = if out.ptr.is_null() {
+            String::new()
+        } else {
+            String::from_utf8(std::slice::from_raw_parts(out.ptr, out.len).to_vec()).unwrap()
+        };
+        ptp_buffer_free(out);
+        let take = |s: *mut c_char| {
+            if s.is_null() {
+                return String::new();
+            }
+            let owned = CStr::from_ptr(s).to_string_lossy().into_owned();
+            ptp_string_free(s);
+            owned
+        };
+        let report = take(report);
+        let err = take(err);
+        (
+            status,
+            text,
+            if status == PTP_OK { report } else { err },
+            seen.calls.into_inner().unwrap(),
+        )
+    }
+
+    #[test]
+    fn solve_writes_the_analysis_and_reports_progress() {
+        let (status, text, report, calls) = unsafe { solve(PBN, true) };
+        assert_eq!(status, PTP_OK, "{report}");
+        assert!(text.contains("[DoubleDummyTricks "), "{text}");
+        assert!(text.starts_with(PBN), "the file is kept as written");
+        assert_eq!(report, r#"{"tables":1,"plays":0,"skipped":[]}"#);
+        assert_eq!(calls.first(), Some(&(PTP_STAGE_TABLES, 0, 5)));
+        assert!(calls.contains(&(PTP_STAGE_TABLES, 5, 5)));
+        // Solved already: nothing to do the second time
+        let (status, again, report, _) = unsafe { solve(&text, true) };
+        assert_eq!(status, PTP_OK);
+        assert_eq!(again, text);
+        assert_eq!(report, r#"{"tables":0,"plays":0,"skipped":[]}"#);
+    }
+
+    #[test]
+    fn solve_stops_when_the_callback_says_so() {
+        let (status, text, message, _) = unsafe { solve(PBN, false) };
+        assert_eq!(status, PTP_CANCELLED);
+        assert!(text.is_empty());
+        assert_eq!(message, "Cancelled.");
+    }
+
+    #[test]
+    fn the_report_escapes_its_strings() {
+        let report = Report {
+            tables: 1,
+            plays: 0,
+            skipped: vec![bridge_solver::annotate::Skipped {
+                file: 0,
+                board: 0,
+                label: "4\"a".into(),
+                reason: "line\nbreak".into(),
+            }],
+        };
+        assert_eq!(
+            report_json(&report),
+            r#"{"tables":1,"plays":0,"skipped":[{"board":"4\"a","reason":"line\nbreak"}]}"#
+        );
     }
 }

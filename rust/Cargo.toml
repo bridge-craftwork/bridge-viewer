@@ -19,6 +19,10 @@ pbn-to-pdf = { git = "https://github.com/bridge-craftwork/pbn-to-pdf", default-f
 # LIN reading and PBN writing, for opening .lin files. The same unpinned git
 # source pbn-to-pdf uses, so the two resolve to one copy.
 bridge-encodings = { git = "https://github.com/bridge-craftwork/bridge-encodings" }
+# Double-dummy solving, for Solve in the app: bridge_solver::annotate writes the
+# tables and [DoubleDummyPlay] into the PBN as its CLI does. Unpinned like the
+# others; `play-analysis` is the feature that carries `annotate`.
+bridge-solver = { git = "https://github.com/bridge-craftwork/bridge-solver", default-features = false, features = ["play-analysis"] }
 
 [profile.release]
 lto = true

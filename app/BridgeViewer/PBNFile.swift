@@ -101,6 +101,13 @@ struct PBNFile: Equatable {
         }
     }
 
+    /// This file with `pbn`, its text after solving, in place of its own.
+    /// From then on it is that PBN: a LIN file becomes a `.pbn` of the same
+    /// name, and View Source shows the new text.
+    func withAnalysis(_ pbn: String) throws -> PBNFile {
+        try PBNFile.parse(Data(pbn.utf8), name: isLIN ? "\(stem).pbn" : name)
+    }
+
     static func sample() -> PBNFile? {
         guard let url = Bundle.main.url(forResource: "Sample", withExtension: "pbn"),
               let data = try? Data(contentsOf: url)

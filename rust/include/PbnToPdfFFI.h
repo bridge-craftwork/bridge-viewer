@@ -13,6 +13,10 @@
 #define PTP_OK 0
 #define PTP_ERROR 1
 #define PTP_PANIC 2
+#define PTP_CANCELLED 3
+
+#define PTP_STAGE_TABLES 0
+#define PTP_STAGE_PLAY 1
 
 typedef struct PtpBuffer {
     uint8_t *ptr;
@@ -60,6 +64,27 @@ int32_t ptp_lin_to_pbn(const char *lin, PtpBuffer *out_pbn, char **out_error);
 /// Each board's record in a PBN (`lin` false) or LIN source, as JSON
 /// `[[start, end], ...]` byte offsets; NULL if the text won't read.
 char *ptp_source_records(const char *text, bool lin);
+
+typedef struct PtpSolveOptions {
+    /// Also analyse each recorded play card by card, into [DoubleDummyPlay].
+    bool play;
+    /// Redo boards that already carry analysis.
+    bool recalculate;
+} PtpSolveOptions;
+
+/// Solve progress: `stage` is PTP_STAGE_TABLES (counted in strains, five per
+/// board) or PTP_STAGE_PLAY (counted in boards). Called from worker threads,
+/// one call at a time. Return false to cancel.
+typedef bool (*PtpProgress)(void *context, uint32_t stage, size_t done, size_t total);
+
+/// Solve a PBN file double dummy, as bridge-solver's CLI does, keeping the rest
+/// of the file byte for byte. Blocks until done: call it off the main thread.
+/// On PTP_OK, *out_pbn holds the new text and *out_report JSON
+/// {"tables": n, "plays": n, "skipped": [{"board": "4", "reason": "..."}]}.
+/// PTP_CANCELLED when `progress` returned false. `options` and `progress` may
+/// be NULL; `context` is passed back to `progress`.
+int32_t ptp_solve(const char *pbn, const PtpSolveOptions *options, PtpProgress progress,
+                  void *context, PtpBuffer *out_pbn, char **out_report, char **out_error);
 
 void ptp_buffer_free(PtpBuffer buffer);
 void ptp_string_free(char *s);
